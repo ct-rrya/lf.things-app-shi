@@ -1,18 +1,44 @@
 {
   "name": "sos-app",
   "version": "1.0.0",
-  "main": "index.js",
+  "type": "module",
+  "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "test:storage": "node test-storage.js"
   },
   "dependencies": {
-    "expo": "~55.0.4",
+    "@google/generative-ai": "^0.24.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@supabase/supabase-js": "^2.98.0",
+    "dotenv": "^17.3.1",
+    "expo": "~55.0.5",
+    "expo-camera": "^55.0.9",
+    "expo-constants": "^55.0.7",
+    "expo-dev-client": "~55.0.16",
+    "expo-file-system": "^55.0.10",
+    "expo-image-picker": "~55.0.12",
+    "expo-linking": "^55.0.7",
+    "expo-notifications": "~55.0.12",
+    "expo-router": "~55.0.5",
     "expo-status-bar": "~55.0.4",
+    "groq-sdk": "^0.37.0",
+    "nativewind": "^4.2.2",
     "react": "19.2.0",
-    "react-native": "0.83.2"
+    "react-dom": "19.2.0",
+    "react-native": "0.83.2",
+    "react-native-qrcode-svg": "^6.3.21",
+    "react-native-reanimated": "4.2.1",
+    "react-native-safe-area-context": "~5.6.2",
+    "react-native-screens": "~4.23.0",
+    "react-native-svg": "15.15.3",
+    "react-native-url-polyfill": "^3.0.0",
+    "react-native-web": "^0.21.0",
+    "react-native-worklets": "0.7.2",
+    "tailwindcss": "^3.4.19"
   },
   "private": true
 }

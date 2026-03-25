@@ -1,29 +1,31 @@
 {
   "expo": {
-    "name": "sos-app",
+    "name": "SOS",
     "slug": "sos-app",
     "version": "1.0.0",
+    "scheme": "sos",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sos.app"
     },
     "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      "package": "com.sos.app"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d4f1b0b0-94ac-4eb6-b589-2e7b32000fed"
+      }
+    },
+    "plugins": [
+      "expo-router"
+    ]
   }
 }
