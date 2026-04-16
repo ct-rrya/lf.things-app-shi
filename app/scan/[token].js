@@ -25,18 +25,16 @@ export default function ScanPage() {
 
   async function fetchItem() {
     try {
-      // Try qr_token first, fall back to id
       let { data, error } = await supabase
         .from('items')
-        .select('id, name, description, category, status, user_id')
+        .select('id, name, description, category, status, user_id, photo_urls, owner_name, program, year_section, contact_phone, social_media')
         .eq('qr_token', token)
         .maybeSingle();
 
       if (!data) {
-        // Fallback: treat token as item id
         ({ data, error } = await supabase
           .from('items')
-          .select('id, name, description, category, status, user_id')
+          .select('id, name, description, category, status, user_id, photo_urls, owner_name, program, year_section, contact_phone, social_media')
           .eq('id', token)
           .maybeSingle());
       }
@@ -171,9 +169,17 @@ export default function ScanPage() {
 
       {/* Item Card */}
       <View style={styles.itemCard}>
-        <View style={styles.itemIcon}>
-          <Ionicons name="cube" size={28} color={colors.grape} />
-        </View>
+        {item.photo_urls?.[0] ? (
+          <View style={styles.itemPhotoWrap}>
+            <View style={styles.itemPhoto}>
+              <Ionicons name="image" size={28} color="#8A8070" />
+            </View>
+          </View>
+        ) : (
+          <View style={styles.itemIcon}>
+            <Ionicons name="cube" size={28} color={colors.grape} />
+          </View>
+        )}
         <View style={styles.itemInfo}>
           <Text style={styles.itemName}>{item.name}</Text>
           {item.description && (
@@ -186,6 +192,63 @@ export default function ScanPage() {
           )}
         </View>
       </View>
+
+      {/* Owner Details */}
+      {(item.owner_name || item.program || item.contact_phone || item.social_media) && (
+        <View style={styles.ownerCard}>
+          <View style={styles.ownerCardHeader}>
+            <View style={styles.ownerAvatarWrap}>
+              <Ionicons name="person" size={20} color={colors.grape} />
+            </View>
+            <View>
+              <Text style={styles.ownerCardLabel}>OWNER INFORMATION</Text>
+              <Text style={styles.ownerCardSub}>Contact them directly to return this item</Text>
+            </View>
+          </View>
+
+          {item.owner_name ? (
+            <View style={styles.ownerRow}>
+              <Ionicons name="person-outline" size={15} color="#8A8070" />
+              <View style={styles.ownerRowBody}>
+                <Text style={styles.ownerRowLabel}>NAME</Text>
+                <Text style={styles.ownerRowValue}>{item.owner_name}</Text>
+              </View>
+            </View>
+          ) : null}
+
+          {item.program ? (
+            <View style={styles.ownerRow}>
+              <Ionicons name="school-outline" size={15} color="#8A8070" />
+              <View style={styles.ownerRowBody}>
+                <Text style={styles.ownerRowLabel}>PROGRAM / YEAR</Text>
+                <Text style={styles.ownerRowValue}>
+                  {item.program}{item.year_section ? ` · ${item.year_section}` : ''}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
+          {item.contact_phone ? (
+            <View style={styles.ownerRow}>
+              <Ionicons name="call-outline" size={15} color="#8A8070" />
+              <View style={styles.ownerRowBody}>
+                <Text style={styles.ownerRowLabel}>PHONE</Text>
+                <Text style={styles.ownerRowValue}>{item.contact_phone}</Text>
+              </View>
+            </View>
+          ) : null}
+
+          {item.social_media ? (
+            <View style={styles.ownerRow}>
+              <Ionicons name="logo-facebook" size={15} color="#8A8070" />
+              <View style={styles.ownerRowBody}>
+                <Text style={styles.ownerRowLabel}>SOCIAL MEDIA</Text>
+                <Text style={styles.ownerRowValue}>{item.social_media}</Text>
+              </View>
+            </View>
+          ) : null}
+        </View>
+      )}
 
       {/* Option Selection */}
       <View style={styles.optionsSection}>
@@ -463,7 +526,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 14,
-    marginBottom: 24,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(69,53,75,0.08)',
     flexDirection: 'row',
@@ -473,6 +536,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
+  },
+  itemPhotoWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    overflow: 'hidden',
+    flexShrink: 0,
+  },
+  itemPhoto: {
+    width: 52,
+    height: 52,
+    backgroundColor: 'rgba(69,53,75,0.06)',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   itemIcon: {
     width: 52,
@@ -701,6 +779,65 @@ const styles = StyleSheet.create({
     color: '#059669',
     lineHeight: 16,
     fontWeight: '500',
+  },
+
+  // Owner Card
+  ownerCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1.5,
+    borderColor: 'rgba(219,179,84,0.35)',
+    gap: 12,
+  },
+  ownerCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0EBE3',
+  },
+  ownerAvatarWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(219,179,84,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  ownerCardLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#8a6a10',
+    letterSpacing: 1.2,
+  },
+  ownerCardSub: {
+    fontSize: 11,
+    color: '#8A8070',
+    marginTop: 2,
+  },
+  ownerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  ownerRowBody: {
+    flex: 1,
+  },
+  ownerRowLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#8A8070',
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  ownerRowValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.grape,
   },
 
   // Error State
