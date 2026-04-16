@@ -73,14 +73,18 @@ export default function ReportFound() {
 
   async function uploadPhoto(uri) {
     try {
-      const fileExt = uri.split('.').pop()?.split('?')[0] || 'jpg';
-      const fileName = `found/${Date.now()}.${fileExt}`;
-      if (Platform.OS !== 'web') return `https://via.placeholder.com/400x300?text=Photo+Upload+Pending`;
+      const fileName = `found/${Date.now()}-${Math.random().toString(36).substring(7)}`;
       const response = await fetch(uri);
       const blob = await response.blob();
-      const { data, error } = await supabase.storage.from('item-photos').upload(fileName, blob, { contentType: `image/${fileExt}`, cacheControl: '3600', upsert: false });
+      // Use the actual MIME type from the blob, fall back to jpeg
+      const mimeType = blob.type || 'image/jpeg';
+      const ext = mimeType.split('/')[1]?.split('+')[0] || 'jpg';
+      const fullName = `${fileName}.${ext}`;
+      const { error } = await supabase.storage
+        .from('item-photos')
+        .upload(fullName, blob, { contentType: mimeType, cacheControl: '3600', upsert: false });
       if (error) throw new Error(`Upload failed: ${error.message}`);
-      const { data: { publicUrl } } = supabase.storage.from('item-photos').getPublicUrl(fileName);
+      const { data: { publicUrl } } = supabase.storage.from('item-photos').getPublicUrl(fullName);
       return publicUrl;
     } catch (error) {
       throw new Error(error.message || 'Failed to upload photo.');

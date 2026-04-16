@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "SOS",
-    "slug": "sos-app",
+    "name": "LF",
+    "slug": "lf-app",
     "version": "1.0.0",
-    "scheme": "sos",
+    "scheme": "lf",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
@@ -11,10 +11,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sos.app"
+      "bundleIdentifier": "com.lf.app"
     },
     "android": {
-      "package": "com.sos.app"
+      "package": "com.lf.app"
     },
     "web": {
       "bundler": "metro"

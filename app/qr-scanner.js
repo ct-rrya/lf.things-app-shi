@@ -32,7 +32,7 @@ export default function QRScanner() {
       if (!data.includes('http')) {
         Alert.alert(
           'Invalid QR Code',
-          'This QR code is not from SOS',
+          'This QR code is not from LF',
           [{ text: 'Scan Again', onPress: () => setScanned(false) }]
         );
         return;
@@ -48,7 +48,7 @@ export default function QRScanner() {
       if (!uuidRegex.test(uuid)) {
         Alert.alert(
           'Invalid QR Code',
-          'This QR code is not from SOS',
+          'This QR code is not from LF',
           [{ text: 'Scan Again', onPress: () => setScanned(false) }]
         );
         return;
@@ -151,7 +151,7 @@ export default function QRScanner() {
           {/* Bottom Section */}
           <View style={styles.overlayBottom}>
             <Text style={styles.instructionText}>
-              Point your camera at an SOS QR code
+              Point your camera at an LF QR code
             </Text>
             {scanned && (
               <View style={styles.successIndicator}>

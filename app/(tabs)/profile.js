@@ -34,13 +34,13 @@ export default function Profile() {
         .from('students')
         .select('full_name, program, year_level, section, student_id')
         .eq('auth_user_id', user.id)
-        .single();
+        .maybeSingle();
 
       const { data: profileData } = await supabase
         .from('profiles')
         .select('bio, avatar_seed, display_name')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       setProfile({
         full_name: studentData?.full_name || user.email,
@@ -96,7 +96,7 @@ export default function Profile() {
           <View>
             <Text style={styles.heroEyebrow}>ACCOUNT</Text>
             <Text style={styles.heroAppName}>
-              SOS<Text style={styles.heroAppDot}>.</Text>things
+              LF<Text style={styles.heroAppDot}>.</Text>things
             </Text>
           </View>
           {/* Edit button */}
@@ -222,7 +222,7 @@ export default function Profile() {
             <Text style={styles.groupLabel}>About</Text>
             <View style={styles.card}>
               {[
-                { label: 'App', value: 'SOS — Lost & Found' },
+                { label: 'App', value: 'LF — Lost & Found' },
                 { label: 'Campus', value: 'CTU Daanbantayan' },
                 { label: 'Version', value: 'v1.0.0' },
               ].map((row, i, arr) => (
@@ -248,7 +248,7 @@ export default function Profile() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.version}>SOS but for things · v1.0.0</Text>
+        <Text style={styles.version}>LF but for things · v1.0.0</Text>
         <View style={{ height: 40 }} />
       </ScrollView>
 
@@ -260,7 +260,7 @@ export default function Profile() {
               <Ionicons name="log-out-outline" size={28} color="#E53935" />
             </View>
             <Text style={styles.modalTitle}>Sign Out</Text>
-            <Text style={styles.modalSub}>Are you sure you want to sign out of SOS.things?</Text>
+            <Text style={styles.modalSub}>Are you sure you want to sign out of LF.things?</Text>
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.modalCancel} onPress={() => setShowSignOutModal(false)}>
                 <Text style={styles.modalCancelText}>Cancel</Text>

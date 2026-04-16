@@ -88,24 +88,18 @@ export default function Register() {
     setPhotoError('');
     try {
       const uri = asset.uri;
-      const fileExt = uri.split('.').pop()?.split('?')[0] || 'jpg';
-      const fileName = `items/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      
-      // For React Native, we need to create an ArrayBuffer from the image
       const response = await fetch(uri);
       const blob = await response.blob();
-      const arrayBuffer = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsArrayBuffer(blob);
-      });
+      // Use actual MIME type from blob — avoids Invalid Content-Type on web
+      const mimeType = blob.type || 'image/jpeg';
+      const ext = mimeType.split('/')[1]?.split('+')[0] || 'jpg';
+      const fileName = `items/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
 
-      // Upload to Supabase storage
+      // Upload blob directly — ArrayBuffer causes Invalid Content-Type on web
       const { data, error } = await supabase.storage
         .from('item-photos')
-        .upload(fileName, arrayBuffer, {
-          contentType: `image/${fileExt}`,
+        .upload(fileName, blob, {
+          contentType: mimeType,
           upsert: false,
         });
 

@@ -57,7 +57,7 @@ export default function Home() {
         .from('students')
         .select('full_name')
         .eq('auth_user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (student?.full_name) {
         setUserName(student.full_name.split(' ')[0]);
@@ -105,27 +105,38 @@ export default function Home() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
+      // Get user's item IDs first, then filter matches by those
+      const { data: userItems } = await supabase
+        .from('items')
+        .select('id')
+        .eq('user_id', user.id);
+
+      const itemIds = (userItems || []).map(i => i.id);
+      if (itemIds.length === 0) { setRecentActivity([]); return; }
+
       const { data: matches } = await supabase
         .from('ai_matches')
         .select(`
           *,
-          lost_item:items!ai_matches_lost_item_id_fkey(id, name, user_id),
+          lost_item:items!ai_matches_lost_item_id_fkey(id, name),
           found_item:found_items(id, category)
         `)
-        .eq('lost_item.user_id', user.id)
+        .in('lost_item_id', itemIds)
         .order('created_at', { ascending: false })
         .limit(5);
 
-      const activities = (matches || []).map(match => ({
-        id: match.id,
-        type: match.status === 'recovered' ? 'recovered' : 'match',
-        message: match.status === 'recovered'
-          ? `Item recovered: ${match.lost_item.name}`
-          : `Your ${match.lost_item.name} has a possible match`,
-        time: match.created_at,
-        icon: match.status === 'recovered' ? 'checkmark-circle' : 'sparkles',
-        color: match.status === 'recovered' ? '#10b981' : colors.gold,
-      }));
+      const activities = (matches || [])
+        .filter(match => match.lost_item?.name) // guard against null joins
+        .map(match => ({
+          id: match.id,
+          type: match.status === 'recovered' ? 'recovered' : 'match',
+          message: match.status === 'recovered'
+            ? `Item recovered: ${match.lost_item.name}`
+            : `Your ${match.lost_item.name} has a possible match`,
+          time: match.created_at,
+          icon: match.status === 'recovered' ? 'checkmark-circle' : 'sparkles',
+          color: match.status === 'recovered' ? '#10b981' : colors.gold,
+        }));
 
       setRecentActivity(activities);
     } catch (err) {

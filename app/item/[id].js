@@ -129,23 +129,12 @@ export default function ItemDetail() {
   }
 
   function shareQRCode() {
-    // For development: Get the actual dev server URL
-    // For production: replace with your actual domain (e.g., 'https://yourapp.com')
-    const getBaseUrl = () => {
-      if (Platform.OS === 'web') {
-        return window.location.origin;
-      }
-      // For mobile development, use your computer's local IP
-      // Find your IP: Windows (ipconfig), Mac/Linux (ifconfig)
-      // Example: return 'http://192.168.1.100:8081';
-      return 'http://172.16.216.101:8081'; // CHANGE THIS to your computer's IP address
-    };
-    
-    const url = `${getBaseUrl()}/found/${item.id}`;
-    Share.share({
-      message: `Found my ${item.name}? Scan this link: ${url}`,
-      url,
-    });
+    const base = Platform.OS === 'web'
+      ? window.location.origin
+      : process.env.EXPO_PUBLIC_APP_URL || 'http://localhost:8081';
+    const token = item.qr_token || item.id;
+    const url = `${base}/scan/${token}`;
+    Share.share({ message: `Found my ${item.name}? Scan this link: ${url}`, url });
   }
   // ── END LOGIC ──────────────────────────────────────────────────
 
@@ -179,19 +168,14 @@ export default function ItemDetail() {
 
   if (!item) return null;
 
-  // For development: Get the actual dev server URL
-  // For production: replace with your actual domain (e.g., 'https://yourapp.com')
-  const getBaseUrl = () => {
-    if (Platform.OS === 'web') {
-      return window.location.origin;
-    }
-    // For mobile development, use your computer's local IP
-    // Find your IP: Windows (ipconfig), Mac/Linux (ifconfig)
-    // Example: return 'http://192.168.1.100:8081';
-    return 'http://192.168.1.100:8081'; // CHANGE THIS to your computer's IP address
-  };
-  
-  const qrUrl = `${getBaseUrl()}/found/${item.id}`;
+  function getBaseUrl() {
+    if (Platform.OS === 'web') return window.location.origin;
+    return process.env.EXPO_PUBLIC_APP_URL || 'http://localhost:8081';
+  }
+
+  const qrUrl = item.qr_token
+    ? `${getBaseUrl()}/scan/${item.qr_token}`
+    : `${getBaseUrl()}/scan/${item.id}`;
   const statusStyle = getStatusStyle(item.status);
   const { icon: catIcon, color: catColor } = getCategoryIcon(item.category);
 
@@ -450,7 +434,14 @@ export default function ItemDetail() {
                   <View style={styles.qrActions}>
                     <TouchableOpacity
                       style={styles.qrBtnPrint}
-                      onPress={() => {}}
+                      onPress={() => {
+                        if (Platform.OS === 'web') {
+                          window.print();
+                        } else {
+                          // On mobile, share the QR URL as fallback
+                          shareQRCode();
+                        }
+                      }}
                       activeOpacity={0.75}
                     >
                       <Ionicons name="print-outline" size={r.isTablet ? 14 : 12} color={colors.ember} />

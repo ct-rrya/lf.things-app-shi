@@ -39,7 +39,7 @@ function WebSidebar() {
         </View>
         {!collapsed && (
           <View>
-            <Text style={styles.brandName}>SOS</Text>
+    <Text style={styles.brandName}>LF</Text>
             <Text style={styles.brandSub}>Lost & Found</Text>
           </View>
         )}

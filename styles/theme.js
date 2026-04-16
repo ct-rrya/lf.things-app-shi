@@ -1,4 +1,4 @@
-// SOS Design System Theme
+// LF Design System Theme
 // Centralized styling for consistent design across the app
 
 export const colors = {

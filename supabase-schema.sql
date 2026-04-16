@@ -1,4 +1,4 @@
--- SOS Database Schema for QR Code System
+-- LF Database Schema for QR Code System
 -- Run this in Supabase SQL Editor: Dashboard → SQL Editor → New Query
 
 -- Enable UUID extension

@@ -14,7 +14,7 @@ export default function SplashScreen() {
 
       {/* App Name */}
       <Text style={styles.appName}>
-        SOS<Text style={styles.dot}>.</Text>things
+        LF<Text style={styles.dot}>.</Text>things
       </Text>
       <Text style={styles.subtitle}>Lost & Found</Text>
 

@@ -129,7 +129,7 @@ export default function AuthScreen() {
               <Text style={styles.brandPillText}>CAMPUS LOST & FOUND</Text>
             </View>
             <Text style={styles.logoText}>
-              SOS<Text style={styles.logoEmber}>.</Text>things
+              LF<Text style={styles.logoEmber}>.</Text>things
             </Text>
             <Text style={styles.logoSub}>CTU Daanbantayan</Text>
             <View style={styles.featureRow}>
@@ -254,7 +254,7 @@ export default function AuthScreen() {
             </View>
           </View>
 
-          <Text style={styles.footer}>SOS but for things · v1.0.0</Text>
+          <Text style={styles.footer}>LF but for things · v1.0.0</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

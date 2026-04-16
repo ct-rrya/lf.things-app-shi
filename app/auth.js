@@ -163,7 +163,7 @@ export default function Auth() {
           
           <Text style={styles.label}>LOST & FOUND SYSTEM</Text>
           <Text style={styles.title}>
-            SOS<Text style={styles.titleDot}>.</Text>things
+            LF<Text style={styles.titleDot}>.</Text>things
           </Text>
           <Text style={styles.subtitle}>{CTU_INFO.tagline}</Text>
           <Text style={styles.campus}>For CTU Daanbantayan Students Only</Text>

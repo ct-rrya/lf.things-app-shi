@@ -1,5 +1,5 @@
 {
-  "name": "sos-app",
+  "name": "lf-app",
   "version": "1.0.0",
   "type": "module",
   "main": "expo-router/entry",

@@ -45,7 +45,7 @@ export default function AccountSettings() {
         .from('students')
         .select('full_name, student_id')
         .eq('auth_user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (student) setStudentId(student.student_id);
 
@@ -53,7 +53,7 @@ export default function AccountSettings() {
         .from('profiles')
         .select('display_name, bio, avatar_seed')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       setDisplayName(profile?.display_name || student?.full_name || '');
       setBio(profile?.bio || '');

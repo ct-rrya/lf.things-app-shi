@@ -1,4 +1,4 @@
-// SOS Design System Colors - Updated Theme
+// LF Design System Colors - Updated Theme
 export const colors = {
   background: '#F5F0E8',  // warm off-white
   surface: '#FFFFFF',     // white

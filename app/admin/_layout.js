@@ -7,7 +7,7 @@ import { Stack, useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 const ADMIN_CODE = process.env.EXPO_PUBLIC_ADMIN_CODE || 'ctu-admin-2025';
-const SESSION_KEY = 'sos_admin_unlocked';
+const SESSION_KEY = 'lf_admin_unlocked';
 
 const NAV = [
   { name: 'index',    label: 'Dashboard',  icon: 'grid-outline' },
@@ -83,7 +83,7 @@ function Sidebar({ onLock }) {
         </View>
         {!collapsed && (
           <View>
-            <Text style={styles.brandName}>SOS Admin</Text>
+            <Text style={styles.brandName}>LF Admin</Text>
             <Text style={styles.brandSub}>CTU Daanbantayan</Text>
           </View>
         )}

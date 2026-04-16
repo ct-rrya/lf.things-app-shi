@@ -25,11 +25,21 @@ export default function ScanPage() {
 
   async function fetchItem() {
     try {
-      const { data, error } = await supabase
+      // Try qr_token first, fall back to id
+      let { data, error } = await supabase
         .from('items')
         .select('id, name, description, category, status, user_id')
         .eq('qr_token', token)
-        .single();
+        .maybeSingle();
+
+      if (!data) {
+        // Fallback: treat token as item id
+        ({ data, error } = await supabase
+          .from('items')
+          .select('id, name, description, category, status, user_id')
+          .eq('id', token)
+          .maybeSingle());
+      }
 
       if (error) throw error;
       setItem(data);
@@ -70,7 +80,7 @@ export default function ScanPage() {
           finder_contact: facebook.trim() || instagram.trim() || null,
           finder_email: null,
           location_note: locationNote.trim() || null,
-          finder_user_id: null, // Anonymous scan
+          finder_user_id: null,
         });
 
       if (error) throw error;
@@ -78,10 +88,21 @@ export default function ScanPage() {
       // Update item status
       await supabase
         .from('items')
-        .update({ 
+        .update({
           status: selectedOption === 'turn_in' ? 'at_admin' : 'located'
         })
         .eq('id', item.id);
+
+      // Notify the owner via notifications table
+      await supabase.from('notifications').insert({
+        user_id: item.user_id,
+        type: selectedOption === 'turn_in' ? 'item_turned_in' : 'item_located',
+        title: selectedOption === 'turn_in' ? 'Item Turned In' : 'Item Located',
+        body: selectedOption === 'turn_in'
+          ? `Someone found your ${item.name} and turned it in to the SSG Office.`
+          : `Someone found your ${item.name} and still has it. Check your notifications for contact details.`,
+        data: { item_id: item.id },
+      }).maybeSingle(); // ignore error if notifications table doesn't exist yet
 
       setSubmitted(true);
     } catch (error) {

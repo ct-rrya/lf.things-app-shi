@@ -38,13 +38,20 @@ export default function Notifications() {
     fetchNotifications();
   }, []);
 
-  // ── LOGIC (unchanged) ──────────────────────────────────────────
+  // ── LOGIC ──────────────────────────────────────────────────────
   async function fetchNotifications() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get current user's item IDs first
+      // Pull from unified notifications table
+      const { data: notifData } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      // Also pull scan events and AI matches for richer display
       const { data: userItems } = await supabase
         .from('items')
         .select('id')
@@ -52,46 +59,46 @@ export default function Notifications() {
 
       const itemIds = (userItems || []).map(i => i.id);
 
-      if (itemIds.length === 0) {
-        setScans([]);
-        setScanEvents([]);
-        setMatches([]);
-        setLoading(false);
-        return;
-      }
+      const [scanEventsRes, matchesRes] = itemIds.length > 0
+        ? await Promise.all([
+            supabase
+              .from('scan_events')
+              .select('*, items(id, name, category)')
+              .in('item_id', itemIds)
+              .order('created_at', { ascending: false }),
+            supabase
+              .from('ai_matches')
+              .select(`
+                *,
+                lost_item:items!ai_matches_lost_item_id_fkey(id, name, category, description),
+                found_item:found_items(id, category, brand, model, color, description, photo_url, found_location)
+              `)
+              .in('lost_item_id', itemIds)
+              .order('created_at', { ascending: false }),
+          ])
+        : [{ data: [] }, { data: [] }];
 
-      const [scansRes, scanEventsRes, matchesRes] = await Promise.all([
-        supabase
-          .from('qr_scans')
-          .select('*, items(id, name, category)')
-          .in('item_id', itemIds)
-          .order('scanned_at', { ascending: false }),
-
-        supabase
-          .from('scan_events')
-          .select('*, items(id, name, category)')
-          .in('item_id', itemIds)
-          .order('created_at', { ascending: false }),
-
-        supabase
-          .from('ai_matches')
-          .select(`
-            *,
-            lost_item:items!ai_matches_lost_item_id_fkey(id, name, category, description),
-            found_item:found_items(id, category, brand, model, color, type, description, photo_url, found_location, found_date)
-          `)
-          .in('lost_item_id', itemIds)
-          .order('created_at', { ascending: false }),
-      ]);
-
-      setScans(scansRes.data || []);
+      setScans(notifData || []);
       setScanEvents(scanEventsRes.data || []);
       setMatches(matchesRes.data || []);
     } catch (error) {
       console.error('Fetch error:', error);
-      Alert.alert('Error', error.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function markAllRead() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase
+        .from('notifications')
+        .update({ read_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .is('read_at', null);
+      fetchNotifications();
+    } catch (err) {
+      console.error('markAllRead error:', err);
     }
   }
 
