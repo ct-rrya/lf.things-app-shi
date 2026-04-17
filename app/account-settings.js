@@ -4,6 +4,7 @@ import {
   TextInput, Image, Alert, Platform, StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SvgUri } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { colors } from '../styles/colors';
@@ -118,10 +119,18 @@ export default function AccountSettings() {
             onPress={() => setShowAvatarPicker(!showAvatarPicker)}
             activeOpacity={0.85}
           >
-            <Image
-              source={{ uri: getAvatarUrl(avatarSeed) }}
-              style={styles.avatarImg}
-            />
+            {Platform.OS === 'web' ? (
+              <Image
+                source={{ uri: getAvatarUrl(avatarSeed) }}
+                style={styles.avatarImg}
+              />
+            ) : (
+              <SvgUri
+                uri={getAvatarUrl(avatarSeed)}
+                width={96}
+                height={96}
+              />
+            )}
             <View style={styles.avatarEditBadge}>
               <Ionicons name="pencil" size={12} color="#1A1611" />
             </View>
@@ -139,7 +148,15 @@ export default function AccountSettings() {
                 onPress={() => { setAvatarSeed(seed); setShowAvatarPicker(false); }}
                 activeOpacity={0.8}
               >
-                <Image source={{ uri: getAvatarUrl(seed) }} style={styles.avatarOptionImg} />
+                {Platform.OS === 'web' ? (
+                  <Image source={{ uri: getAvatarUrl(seed) }} style={styles.avatarOptionImg} />
+                ) : (
+                  <SvgUri
+                    uri={getAvatarUrl(seed)}
+                    width={52}
+                    height={52}
+                  />
+                )}
                 {avatarSeed === seed && (
                   <View style={styles.avatarOptionCheck}>
                     <Ionicons name="checkmark" size={10} color="#FFFFFF" />

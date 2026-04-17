@@ -1,0 +1,70 @@
+// My Items Management Flow
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph MyItems {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial", fontsize=10];
+    
+    start [label="User Opens\nMy Items", shape=ellipse, fillcolor=lightgreen];
+    end1 [label="End", shape=ellipse, fillcolor=pink];
+    end2 [label="End", shape=ellipse, fillcolor=pink];
+    end3 [label="End", shape=ellipse, fillcolor=pink];
+    
+    fetchItems [label="Fetch User's\nItems"];
+    groupStatus [label="Group by Status"];
+    display [label="Display Grouped\nLists"];
+    showLost [label="Show Lost Items\nSection"];
+    showLocated [label="Show Located Items\nSection"];
+    showRecovered [label="Show Recovered\nItems Section"];
+    showSafe [label="Show Safe Items\nSection"];
+    userAction [label="User Action", shape=diamond, fillcolor=lightyellow];
+    navDetail [label="Navigate to\n/item/id"];
+    navRegister [label="Navigate to\nRegister"];
+    loadItem [label="Load Item Details"];
+    displayDetail [label="Display Item Info"];
+    showQR [label="Show QR Code"];
+    showStatus [label="Show Status Badge"];
+    userDetailAction [label="User Action", shape=diamond, fillcolor=lightyellow];
+    selectStatus [label="Select New\nStatus", shape=diamond, fillcolor=lightyellow];
+    shareQR [label="Share QR Code"];
+    printQR [label="Print QR Code"];
+    confirmDelete [label="Confirm Delete?", shape=diamond, fillcolor=lightyellow];
+    updateSafe [label="Update Status:\nsafe"];
+    updateLost [label="Update Status:\nlost"];
+    refreshDetail [label="Refresh Item\nDetails"];
+    deleteItem [label="Delete from\nDatabase"];
+    navBack [label="Navigate Back"];
+    
+    start -> fetchItems;
+    fetchItems -> groupStatus;
+    groupStatus -> display;
+    display -> showLost;
+    showLost -> showLocated;
+    showLocated -> showRecovered;
+    showRecovered -> showSafe;
+    showSafe -> userAction;
+    userAction -> navDetail [label="Tap Item"];
+    userAction -> fetchItems [label="Pull Refresh"];
+    userAction -> navRegister [label="Tap FAB"];
+    navDetail -> loadItem;
+    loadItem -> displayDetail;
+    displayDetail -> showQR;
+    showQR -> showStatus;
+    showStatus -> userDetailAction;
+    userDetailAction -> selectStatus [label="Update Status"];
+    userDetailAction -> shareQR [label="Share QR"];
+    userDetailAction -> printQR [label="Print QR"];
+    userDetailAction -> confirmDelete [label="Delete"];
+    selectStatus -> updateSafe [label="Safe"];
+    selectStatus -> updateLost [label="Lost"];
+    updateSafe -> refreshDetail;
+    updateLost -> refreshDetail;
+    refreshDetail -> displayDetail;
+    confirmDelete -> displayDetail [label="No"];
+    confirmDelete -> deleteItem [label="Yes"];
+    deleteItem -> navBack;
+    navBack -> end1;
+    shareQR -> end2;
+    printQR -> end3;
+}

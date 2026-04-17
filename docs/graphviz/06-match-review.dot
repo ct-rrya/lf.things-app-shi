@@ -1,0 +1,68 @@
+// Match Review & Confirmation Flow
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph MatchReview {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial", fontsize=10];
+    
+    start [label="User Receives\nMatch Notification", shape=ellipse, fillcolor=lightgreen];
+    end1 [label="End", shape=ellipse, fillcolor=pink];
+    end2 [label="End", shape=ellipse, fillcolor=pink];
+    end3 [label="End", shape=ellipse, fillcolor=pink];
+    
+    tapNotif [label="Tap Notification"];
+    navigate [label="Navigate to\n/found/id"];
+    loadFound [label="Load Found Item\nDetails"];
+    loadMatch [label="Load Match Info"];
+    display [label="Display Item\nDetails"];
+    showPhoto [label="Show Photo"];
+    showDetails [label="Show Attributes"];
+    showAI [label="Show AI Reasoning"];
+    showScore [label="Show Match Score"];
+    userDecision [label="User Decision", shape=diamond, fillcolor=lightyellow];
+    
+    // Confirm path
+    confirmMatch [label="Update Match:\nconfirmed"];
+    updateConfirmed [label="Update Match\nStatus"];
+    updateItem [label="Update Item:\nlocated"];
+    updateFound [label="Update Found:\nclaimed"];
+    checkThread [label="Chat Thread\nExists?", shape=diamond, fillcolor=lightyellow];
+    getThread [label="Get Thread ID"];
+    createThread [label="Create Chat\nThread"];
+    navChat [label="Navigate to Chat"];
+    
+    // Reject path
+    rejectMatch [label="Update Match:\nrejected"];
+    updateRejected [label="Update Status"];
+    showRejected [label="Show Dismissed\nMessage", fillcolor=lightyellow];
+    
+    start -> tapNotif;
+    tapNotif -> navigate;
+    navigate -> loadFound;
+    loadFound -> loadMatch;
+    loadMatch -> display;
+    display -> showPhoto;
+    showPhoto -> showDetails;
+    showDetails -> showAI;
+    showAI -> showScore;
+    showScore -> userDecision;
+    
+    userDecision -> confirmMatch [label="Confirm"];
+    userDecision -> rejectMatch [label="Reject"];
+    userDecision -> end1 [label="Back"];
+    
+    rejectMatch -> updateRejected;
+    updateRejected -> showRejected;
+    showRejected -> end2;
+    
+    confirmMatch -> updateConfirmed;
+    updateConfirmed -> updateItem;
+    updateItem -> updateFound;
+    updateFound -> checkThread;
+    checkThread -> getThread [label="Yes"];
+    checkThread -> createThread [label="No"];
+    createThread -> getThread;
+    getThread -> navChat;
+    navChat -> end3;
+}

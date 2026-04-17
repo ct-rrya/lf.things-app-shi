@@ -1,0 +1,81 @@
+// Authentication & Registration Flow
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph Authentication {
+    // Graph settings
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial", fontsize=10];
+    
+    // Start/End nodes
+    start [label="User Opens App", shape=ellipse, fillcolor=lightgreen];
+    end1 [label="End", shape=ellipse, fillcolor=pink];
+    
+    // Process nodes
+    splash [label="Show Splash Screen"];
+    checkAuth [label="User Authenticated?", shape=diamond, fillcolor=lightyellow];
+    home [label="Navigate to Home"];
+    authScreen [label="Show Auth Screen"];
+    modeSelect [label="Select Mode", shape=diamond, fillcolor=lightyellow];
+    
+    // Sign In path
+    enterEmail [label="Enter Email\n& Password"];
+    signIn [label="Call Supabase Auth"];
+    signInSuccess [label="Success?", shape=diamond, fillcolor=lightyellow];
+    showError1 [label="Show Error Alert", fillcolor=lightcoral];
+    
+    // Sign Up path
+    enterStudentID [label="Enter Student ID,\nEmail & Password"];
+    validateInput [label="Valid Input?", shape=diamond, fillcolor=lightyellow];
+    showError2 [label="Show Validation\nError", fillcolor=lightcoral];
+    checkStudent [label="Query Students\nTable"];
+    studentExists [label="Student Found?", shape=diamond, fillcolor=lightyellow];
+    notInSystem [label="Alert: Not in System", fillcolor=lightcoral];
+    checkStatus [label="Status Active?", shape=diamond, fillcolor=lightyellow];
+    inactiveAlert [label="Alert: Inactive", fillcolor=lightcoral];
+    checkLinked [label="Already Linked?", shape=diamond, fillcolor=lightyellow];
+    alreadyReg [label="Alert: Already\nRegistered", fillcolor=lightcoral];
+    createAuth [label="Create Auth Account"];
+    linkStudent [label="Link auth_user_id\nto Student"];
+    success [label="Alert: Account\nCreated", fillcolor=lightgreen];
+    
+    // Connections
+    start -> splash;
+    splash -> checkAuth;
+    checkAuth -> home [label="Yes"];
+    checkAuth -> authScreen [label="No"];
+    
+    authScreen -> modeSelect;
+    modeSelect -> enterEmail [label="Sign In"];
+    modeSelect -> enterStudentID [label="Sign Up"];
+    
+    enterEmail -> signIn;
+    signIn -> signInSuccess;
+    signInSuccess -> home [label="Yes"];
+    signInSuccess -> showError1 [label="No"];
+    showError1 -> authScreen;
+    
+    enterStudentID -> validateInput;
+    validateInput -> showError2 [label="No"];
+    showError2 -> authScreen;
+    validateInput -> checkStudent [label="Yes"];
+    
+    checkStudent -> studentExists;
+    studentExists -> notInSystem [label="No"];
+    notInSystem -> authScreen;
+    studentExists -> checkStatus [label="Yes"];
+    
+    checkStatus -> inactiveAlert [label="No"];
+    inactiveAlert -> authScreen;
+    checkStatus -> checkLinked [label="Yes"];
+    
+    checkLinked -> alreadyReg [label="Yes"];
+    alreadyReg -> authScreen;
+    checkLinked -> createAuth [label="No"];
+    
+    createAuth -> linkStudent;
+    linkStudent -> success;
+    success -> authScreen;
+    
+    home -> end1;
+}

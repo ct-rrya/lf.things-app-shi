@@ -68,7 +68,7 @@ export default function FoundReportDetail() {
         .from('found_items')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (foundError) throw foundError;
       if (!foundData) { setError('Found report not found'); return; }

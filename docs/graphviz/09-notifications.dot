@@ -1,0 +1,55 @@
+// Notifications/Alerts Flow
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph Notifications {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial", fontsize=10];
+    
+    start [label="User Opens\nNotifications", shape=ellipse, fillcolor=lightgreen];
+    end1 [label="End", shape=ellipse, fillcolor=pink];
+    end2 [label="End", shape=ellipse, fillcolor=pink];
+    end3 [label="End", shape=ellipse, fillcolor=pink];
+    
+    fetchData [label="Fetch Notifications\nData"];
+    fetchNotif [label="Fetch from\nnotifications Table"];
+    fetchScans [label="Fetch Scan Events"];
+    fetchMatches [label="Fetch AI Matches"];
+    combine [label="Combine All\nNotifications"];
+    sort [label="Sort by created_at\nDESC"];
+    hasNotif [label="Has\nNotifications?", shape=diamond, fillcolor=lightyellow];
+    showEmpty [label="Show Empty State", fillcolor=lightyellow];
+    displayList [label="Display\nNotification List"];
+    groupType [label="Group by Type"];
+    showFound [label="Show Found Items"];
+    showMatches [label="Show AI Matches"];
+    showScans [label="Show QR Scans"];
+    userAction [label="User Taps\nNotification", shape=diamond, fillcolor=lightyellow];
+    navItem [label="Navigate to\n/item/id"];
+    navFound [label="Navigate to\n/found/id"];
+    markRead [label="Update read_at"];
+    refreshList [label="Refresh List"];
+    
+    start -> fetchData;
+    fetchData -> fetchNotif;
+    fetchNotif -> fetchScans;
+    fetchScans -> fetchMatches;
+    fetchMatches -> combine;
+    combine -> sort;
+    sort -> hasNotif;
+    hasNotif -> showEmpty [label="No"];
+    showEmpty -> end1;
+    hasNotif -> displayList [label="Yes"];
+    displayList -> groupType;
+    groupType -> showFound;
+    showFound -> showMatches;
+    showMatches -> showScans;
+    showScans -> userAction;
+    userAction -> navItem [label="Scan Event"];
+    userAction -> navFound [label="AI Match"];
+    userAction -> markRead [label="Mark Read"];
+    navItem -> end2;
+    navFound -> end3;
+    markRead -> refreshList;
+    refreshList -> displayList;
+}

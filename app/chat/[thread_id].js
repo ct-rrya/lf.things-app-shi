@@ -148,8 +148,8 @@ export default function ChatThread() {
     if (!isOwner) return;
 
     Alert.alert(
-      'Mark as Recovered?',
-      'This will close the chat and mark the item as recovered. This action cannot be undone.',
+      'Mark as Returned?',
+      'This will close the chat and mark the item as safe. This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -161,7 +161,7 @@ export default function ChatThread() {
 
               await supabase
                 .from('items')
-                .update({ status: 'recovered', recovered_at: now })
+                .update({ status: 'safe' })
                 .eq('id', threadInfo.registered_item_id);
 
               await supabase
@@ -177,9 +177,9 @@ export default function ChatThread() {
 
               if (matchData) {
                 await supabase
-                  .from('found_items')
-                  .update({ status: 'recovered' })
-                  .eq('id', matchData.found_item_id);
+                .from('found_items')
+                .update({ status: 'claimed' })
+                .eq('id', matchData.found_item_id);
               }
 
               await supabase
@@ -188,8 +188,8 @@ export default function ChatThread() {
                 .eq('id', thread_id);
 
               Alert.alert(
-                '✅ Item Recovered!',
-                'Congratulations! The chat has been closed.',
+                '✅ Item Returned!',
+                'The item has been marked as safe. The chat is now closed.',
                 [{ text: 'OK', onPress: () => router.push('/(tabs)/home') }]
               );
             } catch (err) {
@@ -356,7 +356,7 @@ export default function ChatThread() {
           </View>
           {isClosed && (
             <View style={styles.summaryRecoveredTag}>
-              <Text style={styles.summaryRecoveredTagText}>✅ Recovered</Text>
+            <Text style={styles.summaryRecoveredTagText}>✅ Returned</Text>
             </View>
           )}
         </View>
@@ -373,7 +373,7 @@ export default function ChatThread() {
             <Ionicons name="checkmark-circle" size={18} color="#10b981" />
           </View>
           <Text style={[styles.closedBannerText, { fontSize: r.isTablet ? 13 : 12 }]}>
-            Item has been recovered. This conversation is now closed.
+            Item has been returned. This conversation is now closed.
           </Text>
         </View>
       )}
@@ -424,7 +424,7 @@ export default function ChatThread() {
               <Ionicons name="checkmark-circle" size={18} color="#10b981" />
             </View>
             <Text style={[styles.recoveredButtonText, { fontSize: r.isTablet ? 14 : 13 }]}>
-              Mark as Recovered
+              Mark as Returned
             </Text>
             <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.5)" style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>

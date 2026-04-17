@@ -1,0 +1,73 @@
+// QR Code Scanning Flow
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph QRScanning {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial", fontsize=10];
+    
+    start [label="User Taps\nScan QR", shape=ellipse, fillcolor=lightgreen];
+    end1 [label="End", shape=ellipse, fillcolor=pink];
+    end2 [label="End", shape=ellipse, fillcolor=pink];
+    
+    checkPerm [label="Camera\nPermission?", shape=diamond, fillcolor=lightyellow];
+    requestPerm [label="Request Permission"];
+    permGranted [label="Granted?", shape=diamond, fillcolor=lightyellow];
+    showPermError [label="Show Permission\nScreen", fillcolor=lightcoral];
+    openSettings [label="User Opens\nSettings"];
+    openCamera [label="Open Camera View"];
+    scanning [label="Scanning for\nQR Code"];
+    detected [label="QR Detected?", shape=diamond, fillcolor=lightyellow];
+    validateQR [label="Valid LF QR?", shape=diamond, fillcolor=lightyellow];
+    invalidAlert [label="Alert: Invalid QR", fillcolor=lightcoral];
+    parseURL [label="Parse URL/Token"];
+    extractID [label="Extract Item/\nToken ID"];
+    validUUID [label="Valid UUID?", shape=diamond, fillcolor=lightyellow];
+    navigate [label="Navigate to\n/scan/token"];
+    loadScan [label="Load Scan\nAction Screen"];
+    showOptions [label="Show Action\nOptions"];
+    userAction [label="User Selects\nAction", shape=diamond, fillcolor=lightyellow];
+    recordHave [label="Record: have_it"];
+    recordTurn [label="Record: turned_in"];
+    recordLeft [label="Record: left_it"];
+    recordContact [label="Record:\ncontact_owner"];
+    insertScan [label="Insert Scan Event"];
+    notifyOwner [label="Create Notification"];
+    updateStatus [label="Update Item Status"];
+    success [label="Show Success\nMessage", fillcolor=lightgreen];
+    
+    start -> checkPerm;
+    checkPerm -> requestPerm [label="No"];
+    requestPerm -> permGranted;
+    permGranted -> showPermError [label="No"];
+    showPermError -> openSettings;
+    openSettings -> end1;
+    checkPerm -> openCamera [label="Yes"];
+    permGranted -> openCamera [label="Yes"];
+    openCamera -> scanning;
+    scanning -> detected;
+    detected -> scanning [label="No"];
+    detected -> validateQR [label="Yes"];
+    validateQR -> invalidAlert [label="No"];
+    invalidAlert -> scanning;
+    validateQR -> parseURL [label="Yes"];
+    parseURL -> extractID;
+    extractID -> validUUID;
+    validUUID -> invalidAlert [label="No"];
+    validUUID -> navigate [label="Yes"];
+    navigate -> loadScan;
+    loadScan -> showOptions;
+    showOptions -> userAction;
+    userAction -> recordHave [label="Have It"];
+    userAction -> recordTurn [label="Turned In"];
+    userAction -> recordLeft [label="Left It"];
+    userAction -> recordContact [label="Contact"];
+    recordHave -> insertScan;
+    recordTurn -> insertScan;
+    recordLeft -> insertScan;
+    recordContact -> insertScan;
+    insertScan -> notifyOwner;
+    notifyOwner -> updateStatus;
+    updateStatus -> success;
+    success -> end2;
+}

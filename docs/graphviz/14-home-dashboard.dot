@@ -1,0 +1,81 @@
+// Home Dashboard Flow
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph HomeDashboard {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial", fontsize=10];
+    
+    start [label="User Opens Home", shape=ellipse, fillcolor=lightgreen];
+    end1 [label="End", shape=ellipse, fillcolor=pink];
+    end2 [label="End", shape=ellipse, fillcolor=pink];
+    end3 [label="End", shape=ellipse, fillcolor=pink];
+    end4 [label="End", shape=ellipse, fillcolor=pink];
+    end5 [label="End", shape=ellipse, fillcolor=pink];
+    end6 [label="End", shape=ellipse, fillcolor=pink];
+    
+    fetchUser [label="Fetch User Data"];
+    fetchStats [label="Fetch User\nStatistics"];
+    countLost [label="Count Lost Items"];
+    countMatches [label="Count Pending\nMatches"];
+    countSafe [label="Count Safe Items"];
+    fetchActivity [label="Fetch Recent\nActivity"];
+    subscribe [label="Subscribe to\nReal-time Updates"];
+    display [label="Display Dashboard"];
+    showGreeting [label="Show Personalized\nGreeting"];
+    showQuickActions [label="Show Quick Action\nButtons"];
+    showSummary [label="Show Summary Cards"];
+    showActivity [label="Show Recent\nActivity"];
+    userAction [label="User Action", shape=diamond, fillcolor=lightyellow];
+    openLostModal [label="Open Lost Item\nModal"];
+    navReportFound [label="Navigate to\nReport Found"];
+    navScanner [label="Navigate to\nQR Scanner"];
+    navMyItems [label="Navigate to\nMy Items"];
+    navNotifications [label="Navigate to\nNotifications"];
+    loadUserItems [label="Load User's Safe\nItems"];
+    hasItems [label="Has Items?", shape=diamond, fillcolor=lightyellow];
+    noItemsAlert [label="Alert: Register\nItem First", fillcolor=lightyellow];
+    offerRegister [label="Go to Register?", shape=diamond, fillcolor=lightyellow];
+    navRegister [label="Navigate to\nRegister"];
+    showItemList [label="Show Item\nSelection List"];
+    userSelect [label="User Selects Item", shape=diamond, fillcolor=lightyellow];
+    markLost [label="Update Item Status:\nlost"];
+    closeModal [label="Close Modal"];
+    refreshStats [label="Refresh Statistics"];
+    
+    start -> fetchUser;
+    fetchUser -> fetchStats;
+    fetchStats -> countLost;
+    countLost -> countMatches;
+    countMatches -> countSafe;
+    countSafe -> fetchActivity;
+    fetchActivity -> subscribe;
+    subscribe -> display;
+    display -> showGreeting;
+    showGreeting -> showQuickActions;
+    showQuickActions -> showSummary;
+    showSummary -> showActivity;
+    showActivity -> userAction;
+    userAction -> openLostModal [label="I Lost Something"];
+    userAction -> navReportFound [label="I Found Something"];
+    userAction -> navScanner [label="Scan QR"];
+    userAction -> navMyItems [label="View Lost Items"];
+    userAction -> navNotifications [label="View Matches"];
+    openLostModal -> loadUserItems;
+    loadUserItems -> hasItems;
+    hasItems -> noItemsAlert [label="No"];
+    noItemsAlert -> offerRegister;
+    offerRegister -> navRegister [label="Yes"];
+    offerRegister -> end1 [label="No"];
+    hasItems -> showItemList [label="Yes"];
+    showItemList -> userSelect;
+    userSelect -> markLost;
+    markLost -> closeModal;
+    closeModal -> refreshStats;
+    refreshStats -> display;
+    navReportFound -> end2;
+    navScanner -> end3;
+    navMyItems -> end4;
+    navNotifications -> end5;
+    navRegister -> end6;
+}

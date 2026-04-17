@@ -5,13 +5,15 @@ import {
 } from 'react-native';
 import { Stack, useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 
-const ADMIN_CODE = process.env.EXPO_PUBLIC_ADMIN_CODE || 'ctu-admin-2025';
+const ADMIN_CODE = Constants.expoConfig?.extra?.adminCode || process.env.EXPO_PUBLIC_ADMIN_CODE || 'ctu-admin-2025';
 const SESSION_KEY = 'lf_admin_unlocked';
 
 const NAV = [
   { name: 'index',    label: 'Dashboard',  icon: 'grid-outline' },
   { name: 'students', label: 'Students',   icon: 'people-outline' },
+  { name: 'users',    label: 'Users',      icon: 'person-circle-outline' },
   { name: 'items',    label: 'All Items',  icon: 'cube-outline' },
   { name: 'custody',  label: 'Custody',    icon: 'archive-outline' },
   { name: 'audit',    label: 'Audit Log',  icon: 'document-text-outline' },

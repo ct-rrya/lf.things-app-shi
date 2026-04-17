@@ -9,6 +9,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import QRCode from 'react-native-qrcode-svg';
 import { colors } from '../../styles/colors';
+import Constants from 'expo-constants';
 
 // ── Responsive helpers ─────────────────────────────────────────
 function useResponsive() {
@@ -131,7 +132,7 @@ export default function ItemDetail() {
   function shareQRCode() {
     const base = Platform.OS === 'web'
       ? window.location.origin
-      : process.env.EXPO_PUBLIC_APP_URL || 'http://localhost:8081';
+      : Constants.expoConfig?.extra?.appUrl || process.env.EXPO_PUBLIC_APP_URL || 'http://localhost:8081';
     const token = item.qr_token || item.id;
     const url = `${base}/scan/${token}`;
     Share.share({ message: `Found my ${item.name}? Scan this link: ${url}`, url });
@@ -170,7 +171,7 @@ export default function ItemDetail() {
 
   function getBaseUrl() {
     if (Platform.OS === 'web') return window.location.origin;
-    return process.env.EXPO_PUBLIC_APP_URL || 'http://localhost:8081';
+    return Constants.expoConfig?.extra?.appUrl || process.env.EXPO_PUBLIC_APP_URL || 'http://localhost:8081';
   }
 
   const qrUrl = item.qr_token
@@ -351,25 +352,6 @@ export default function ItemDetail() {
                     { fontSize: r.isTablet ? 12 : 11 },
                   ]}>
                     Lost
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.statusBtn, item.status === 'recovered' && styles.statusBtnRecovered]}
-                  onPress={() => updateStatus('recovered')}
-                  activeOpacity={0.75}
-                >
-                  <Ionicons
-                    name="ribbon-outline"
-                    size={r.isTablet ? 17 : 15}
-                    color={item.status === 'recovered' ? '#FFFFFF' : '#8a6a10'}
-                  />
-                  <Text style={[
-                    styles.statusBtnText,
-                    item.status === 'recovered' && styles.statusBtnTextActive,
-                    { fontSize: r.isTablet ? 12 : 11 },
-                  ]}>
-                    Recovered
                   </Text>
                 </TouchableOpacity>
 

@@ -26,7 +26,7 @@ function useResponsive() {
 
 export default function Home() {
   const [userName, setUserName] = useState('');
-  const [stats, setStats] = useState({ lost: 0, matches: 0, recovered: 0 });
+  const [stats, setStats] = useState({ lost: 0, matches: 0, safe: 0 });
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showLostModal, setShowLostModal] = useState(false);
@@ -39,6 +39,42 @@ export default function Home() {
     fetchUserData();
     fetchStats();
     fetchRecentActivity();
+
+    // Real-time: re-fetch stats when items or matches change
+    let itemSub, matchSub, profileSub;
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+
+      itemSub = supabase
+        .channel('home_items_rt')
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'items',
+          filter: `user_id=eq.${user.id}`,
+        }, () => { fetchStats(); fetchRecentActivity(); })
+        .subscribe();
+
+      matchSub = supabase
+        .channel('home_matches_rt')
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'ai_matches',
+        }, () => { fetchStats(); fetchRecentActivity(); })
+        .subscribe();
+
+      profileSub = supabase
+        .channel('home_profile_rt')
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'profiles',
+          filter: `id=eq.${user.id}`,
+        }, () => { fetchUserData(); })
+        .subscribe();
+    });
+
+    return () => {
+      if (itemSub) supabase.removeChannel(itemSub);
+      if (matchSub) supabase.removeChannel(matchSub);
+      if (profileSub) supabase.removeChannel(profileSub);
+    };
   }, []);
 
   async function fetchUserData() {
@@ -46,13 +82,25 @@ export default function Home() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Try user_metadata first, then fall back to students table
-      if (user.user_metadata?.name) {
-        setUserName(user.user_metadata.name.split(' ')[0]);
+      // Check profiles table first for display_name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profile?.display_name) {
+        setUserName(extractFirstName(profile.display_name));
         return;
       }
 
-      // Look up from students master list
+      // Fall back to user_metadata
+      if (user.user_metadata?.name) {
+        setUserName(extractFirstName(user.user_metadata.name));
+        return;
+      }
+
+      // Finally, look up from students master list
       const { data: student } = await supabase
         .from('students')
         .select('full_name')
@@ -60,40 +108,65 @@ export default function Home() {
         .maybeSingle();
 
       if (student?.full_name) {
-        setUserName(student.full_name.split(' ')[0]);
+        setUserName(extractFirstName(student.full_name));
+        return;
+      }
+
+      // Last resort: use email username
+      if (user.email) {
+        setUserName(user.email.split('@')[0]);
       }
     } catch (err) {
       console.error('Error fetching user:', err);
     }
   }
 
+  // Helper function to extract first name from full name
+  // Handles formats like "SURNAME FIRSTNAME MIDDLEINITIAL" or "Firstname Lastname"
+  function extractFirstName(fullName) {
+    if (!fullName) return '';
+    
+    const parts = fullName.trim().split(/\s+/);
+    let firstName = '';
+    
+    // If all caps (like "CABAGTE MONICK R"), assume format is SURNAME FIRSTNAME MIDDLE
+    // So take the second part
+    if (fullName === fullName.toUpperCase() && parts.length >= 2) {
+      firstName = parts[1]; // Return the first name (second word)
+    } else {
+      // Otherwise assume normal format "Firstname Lastname"
+      firstName = parts[0];
+    }
+    
+    // Convert to Title Case (first letter capital, rest lowercase)
+    return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+  }
+
   async function fetchStats() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
-      const { count: lostCount } = await supabase
+      // Get user's item IDs first
+      const { data: ownedItems } = await supabase
         .from('items')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('status', 'lost');
+        .select('id, status')
+        .eq('user_id', user.id);
 
-      const { count: matchCount } = await supabase
-        .from('ai_matches')
-        .select('*, items!ai_matches_lost_item_id_fkey(user_id)', { count: 'exact', head: true })
-        .eq('items.user_id', user.id)
-        .eq('status', 'pending');
+      const itemIds = (ownedItems || []).map(i => i.id);
+      const lostCount = (ownedItems || []).filter(i => i.status === 'lost').length;
+      const safeCount = (ownedItems || []).filter(i => i.status === 'safe').length;
 
-      const { count: recoveredCount } = await supabase
-        .from('items')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('status', 'recovered');
+      let matchCount = 0;
+      if (itemIds.length > 0) {
+        const { count } = await supabase
+          .from('ai_matches')
+          .select('*', { count: 'exact', head: true })
+          .in('lost_item_id', itemIds)
+          .eq('status', 'pending');
+        matchCount = count || 0;
+      }
 
-      setStats({
-        lost: lostCount || 0,
-        matches: matchCount || 0,
-        recovered: recoveredCount || 0,
-      });
+      setStats({ lost: lostCount, matches: matchCount, safe: safeCount });
     } catch (err) {
       console.error('Error fetching stats:', err);
     } finally {
@@ -126,16 +199,14 @@ export default function Home() {
         .limit(5);
 
       const activities = (matches || [])
-        .filter(match => match.lost_item?.name) // guard against null joins
+        .filter(match => match.lost_item?.name)
         .map(match => ({
           id: match.id,
-          type: match.status === 'recovered' ? 'recovered' : 'match',
-          message: match.status === 'recovered'
-            ? `Item recovered: ${match.lost_item.name}`
-            : `Your ${match.lost_item.name} has a possible match`,
+          type: 'match',
+          message: `Your ${match.lost_item.name} has a possible match`,
           time: match.created_at,
-          icon: match.status === 'recovered' ? 'checkmark-circle' : 'sparkles',
-          color: match.status === 'recovered' ? '#10b981' : colors.gold,
+          icon: 'sparkles',
+          color: colors.gold,
         }));
 
       setRecentActivity(activities);
@@ -351,7 +422,7 @@ export default function Home() {
               <View style={[styles.summaryBar, { backgroundColor: colors.danger }]} />
             </TouchableOpacity>
 
-            {/* Recovered */}
+            {/* Safe */}
             <TouchableOpacity
               style={[styles.summaryCard, styles.summaryCardGreen]}
               onPress={() => router.push('/(tabs)/my-items')}
@@ -361,9 +432,9 @@ export default function Home() {
                 <Ionicons name="checkmark-circle" size={20} color={colors.success} />
               </View>
               <Text style={[styles.summaryCount, { color: colors.success }]}>
-                {stats.recovered}
+                {stats.safe}
               </Text>
-              <Text style={styles.summaryLabel}>Recov-{'\n'}ered</Text>
+              <Text style={styles.summaryLabel}>Safe{'\n'}Items</Text>
               <View style={[styles.summaryBar, { backgroundColor: colors.success }]} />
             </TouchableOpacity>
           </View>

@@ -1,0 +1,53 @@
+// AI Matching System Flow
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph AIMatching {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial", fontsize=10];
+    
+    start [label="Found Item\nReported", shape=ellipse, fillcolor=lightgreen];
+    end1 [label="No Matches\nEnd", shape=ellipse, fillcolor=pink];
+    end2 [label="Return Matches", shape=ellipse, fillcolor=lightgreen];
+    
+    getLost [label="Query All\nLost Items"];
+    hasLost [label="Lost Items\nExist?", shape=diamond, fillcolor=lightyellow];
+    loop [label="For Each\nLost Item", fillcolor=lightyellow];
+    buildPrompt [label="Build AI Prompt"];
+    includeFound [label="Include Found\nItem Details"];
+    includeLost [label="Include Lost\nItem Details"];
+    callGemini [label="Call Google\nGemini API", fillcolor=lightcyan];
+    parseResponse [label="Parse JSON\nResponse"];
+    validJSON [label="Valid JSON?", shape=diamond, fillcolor=lightyellow];
+    logError [label="Log Parse Error", fillcolor=lightcoral];
+    nextItem [label="More Items?", shape=diamond, fillcolor=lightyellow];
+    extractScore [label="Extract Match\nScore"];
+    checkThreshold [label="Score >= 60?", shape=diamond, fillcolor=lightyellow];
+    addMatch [label="Add to Matches\nArray"];
+    sortMatches [label="Sort by Score\nDESC"];
+    insertDB [label="Insert Matches to\nDatabase"];
+    createNotif [label="Create\nNotifications"];
+    
+    start -> getLost;
+    getLost -> hasLost;
+    hasLost -> end1 [label="No"];
+    hasLost -> loop [label="Yes"];
+    loop -> buildPrompt;
+    buildPrompt -> includeFound;
+    includeFound -> includeLost;
+    includeLost -> callGemini;
+    callGemini -> parseResponse;
+    parseResponse -> validJSON;
+    validJSON -> logError [label="No"];
+    logError -> nextItem;
+    validJSON -> extractScore [label="Yes"];
+    extractScore -> checkThreshold;
+    checkThreshold -> nextItem [label="No"];
+    checkThreshold -> addMatch [label="Yes"];
+    addMatch -> nextItem;
+    nextItem -> loop [label="Yes"];
+    nextItem -> sortMatches [label="No"];
+    sortMatches -> insertDB;
+    insertDB -> createNotif;
+    createNotif -> end2;
+}

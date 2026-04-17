@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, Platform, StatusBar, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, Platform, StatusBar, ScrollView, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
@@ -17,10 +17,19 @@ export default function Auth() {
   const [section, setSection] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const router = useRouter();
 
   async function handleAuth() {
     if (isSignUp) {
+      // Check if terms are accepted first
+      if (!termsAccepted) {
+        Alert.alert('Terms Required', 'Please accept the Terms & Conditions to continue');
+        setShowTerms(true);
+        return;
+      }
+
       // Sign Up validation
       if (!studentId || !fullName || !email || !password || !confirmPassword) {
         Alert.alert('Error', 'Please fill in all required fields');
@@ -97,16 +106,20 @@ export default function Auth() {
         if (data.user) {
           await supabase.from('profiles').upsert({
             id: data.user.id,
-            student_id: studentId,
-            full_name: fullName,
-            program: program,
-            year_level: yearLevel,
-            section: section,
+            display_name: fullName,
+            avatar_seed: studentId,
           });
-          // Link auth user to master list record
+          // Link auth user to master list record and save all details
           await supabase
             .from('students')
-            .update({ auth_user_id: data.user.id })
+            .update({
+              auth_user_id: data.user.id,
+              email: email.trim(),
+              full_name: fullName.trim(),
+              program: program,
+              year_level: yearLevel,
+              section: section || null,
+            })
             .eq('student_id', studentId.trim());
         }
 
@@ -337,8 +350,30 @@ export default function Auth() {
             </Text>
           </TouchableOpacity>
 
+          {isSignUp && (
+            <TouchableOpacity
+              style={[styles.termsCheckRow, { marginTop: 8 }]}
+              onPress={() => setShowTerms(true)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+                {termsAccepted && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
+              </View>
+              <Text style={styles.termsCheckLabel}>
+                I agree to the Terms & Conditions
+              </Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity 
-            onPress={() => setIsSignUp(!isSignUp)} 
+            onPress={() => {
+              if (!isSignUp) {
+                setShowTerms(true);
+              } else {
+                setIsSignUp(false);
+                setTermsAccepted(false);
+              }
+            }}
             style={styles.switchButton}
             activeOpacity={0.7}
           >
@@ -350,6 +385,105 @@ export default function Auth() {
 
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
+
+      {/* ── TERMS & CONDITIONS MODAL ── */}
+      <Modal visible={showTerms} transparent animationType="slide" onRequestClose={() => setShowTerms(false)}>
+        <View style={styles.termsOverlay}>
+          <View style={styles.termsModal}>
+            <View style={styles.termsHeader}>
+              <View style={styles.termsIconWrap}>
+                <Ionicons name="document-text" size={24} color="#F5C842" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.termsTitle}>Terms & Conditions</Text>
+                <Text style={styles.termsSub}>LF.things — CTU Daanbantayan Lost & Found</Text>
+              </View>
+            </View>
+
+            <ScrollView style={styles.termsBody} showsVerticalScrollIndicator={false}>
+              <Text style={styles.termsSection}>What is LF.things?</Text>
+              <Text style={styles.termsText}>
+                LF.things is the official Lost & Found system of CTU Daanbantayan. It helps students register their belongings with a unique QR code, report found items, and get notified when a match is detected.
+              </Text>
+
+              <Text style={styles.termsSection}>What the app does</Text>
+              <Text style={styles.termsText}>
+                • Register your personal items and generate a QR code sticker{'\n'}
+                • Mark items as lost and receive AI-powered match suggestions{'\n'}
+                • Report found items anonymously or with contact details{'\n'}
+                • Communicate with finders or owners through in-app chat{'\n'}
+                • Notify the SSG Office when an item is turned in
+              </Text>
+
+              <Text style={styles.termsSection}>Important disclaimer</Text>
+              <Text style={styles.termsText}>
+                LF.things is a tool to assist in recovering lost items, but it does NOT guarantee that your lost item will be found or returned. The app relies on the community reporting found items. The administrators, SSG Office, and CTU Daanbantayan staff are NOT responsible for physically searching for, locating, or recovering your lost belongings. This system simply increases the chances of reuniting lost items with their owners through technology and community cooperation.
+              </Text>
+
+              <Text style={styles.termsSection}>Data we collect</Text>
+              <Text style={styles.termsText}>
+                We collect your student ID, name, program, year level, email address, and photos of registered items. This information is used solely to operate the lost and found system and is accessible only to you and authorized CTU Daanbantayan staff.
+              </Text>
+
+              <Text style={styles.termsSection}>What we do NOT do</Text>
+              <Text style={styles.termsText}>
+                • We do not sell or share your data with third parties{'\n'}
+                • We do not use your information for marketing{'\n'}
+                • We do not store payment information of any kind{'\n'}
+                • We do not track your location
+              </Text>
+
+              <Text style={styles.termsSection}>Your responsibilities</Text>
+              <Text style={styles.termsText}>
+                By creating an account, you agree to provide accurate information, use the app only for its intended purpose, and not misuse the system to make false reports or claims.
+              </Text>
+
+              <Text style={styles.termsSection}>Account eligibility</Text>
+              <Text style={styles.termsText}>
+                Only currently enrolled students of CTU Daanbantayan with an active student record may register. Your Student ID must be pre-registered in the system by the Student Affairs Office.
+              </Text>
+
+              <View style={{ height: 16 }} />
+            </ScrollView>
+
+            <View style={styles.termsFooter}>
+              <TouchableOpacity
+                style={[styles.termsCheckRow]}
+                onPress={() => setTermsAccepted(!termsAccepted)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+                  {termsAccepted && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
+                </View>
+                <Text style={styles.termsCheckLabel}>
+                  I have read and agree to the Terms & Conditions
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.termsActions}>
+                <TouchableOpacity style={styles.termsBtnCancel} onPress={() => setShowTerms(false)} activeOpacity={0.8}>
+                  <Text style={styles.termsBtnCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.termsBtnAccept, !termsAccepted && { opacity: 0.4 }]}
+                  disabled={!termsAccepted}
+                  onPress={() => { 
+                    setShowTerms(false); 
+                    if (!isSignUp) {
+                      setIsSignUp(true);
+                    }
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.termsBtnAcceptText}>
+                    {isSignUp ? 'Accept' : 'Continue to Sign Up'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -475,5 +609,125 @@ const styles = StyleSheet.create({
   switchText: {
     ...typography.small,
     opacity: 0.7,
+  },
+
+  // ── Terms Modal ──
+  termsOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(26,22,17,0.6)',
+    justifyContent: 'flex-end',
+  },
+  termsModal: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: '88%',
+    paddingBottom: Platform.OS === 'ios' ? 34 : 16,
+  },
+  termsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E0D0',
+  },
+  termsIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(245,200,66,0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  termsTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#1A1611',
+  },
+  termsSub: {
+    fontSize: 11,
+    color: '#8A8070',
+    marginTop: 2,
+  },
+  termsBody: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    maxHeight: 380,
+  },
+  termsSection: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1A1611',
+    marginTop: 16,
+    marginBottom: 6,
+    letterSpacing: 0.2,
+  },
+  termsText: {
+    fontSize: 13,
+    color: '#5A5248',
+    lineHeight: 21,
+  },
+  termsFooter: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E8E0D0',
+    gap: 14,
+  },
+  termsCheckRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#E8E0D0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  checkboxChecked: {
+    backgroundColor: '#1A1611',
+    borderColor: '#1A1611',
+  },
+  termsCheckLabel: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1A1611',
+    fontWeight: '500',
+    lineHeight: 19,
+  },
+  termsActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  termsBtnCancel: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#E8E0D0',
+    alignItems: 'center',
+  },
+  termsBtnCancelText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8A8070',
+  },
+  termsBtnAccept: {
+    flex: 2,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: '#1A1611',
+    alignItems: 'center',
+  },
+  termsBtnAcceptText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

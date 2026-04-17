@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "LF",
-    "slug": "lf-app",
+    "slug": "sos-app",
     "version": "1.0.0",
     "scheme": "lf",
     "orientation": "portrait",
@@ -26,6 +26,7 @@
     },
     "plugins": [
       "expo-router"
-    ]
+    ],
+    "owner": "rrya_youser"
   }
 }

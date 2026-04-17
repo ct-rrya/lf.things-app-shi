@@ -1,5 +1,6 @@
-﻿@"
-node_modules/
+﻿node_modules/
 .git/
 *.log
-"@ | Out-File -FilePath .easignore -Encoding utf8
+android/build/
+android/.gradle/
+android/.kotlin/

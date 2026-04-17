@@ -1,0 +1,64 @@
+// Student Management (Admin) Flow
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph StudentManagement {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial", fontsize=10];
+    
+    start [label="Admin Opens\nStudents", shape=ellipse, fillcolor=lightgreen];
+    
+    fetchStudents [label="Fetch All Students"];
+    displayList [label="Display Students\nList"];
+    showFilters [label="Show Filter\nOptions"];
+    userAction [label="User Action", shape=diamond, fillcolor=lightyellow];
+    filterList [label="Filter by Search\nTerm"];
+    filterStatus [label="Filter by Status"];
+    showAddModal [label="Show Add Student\nModal"];
+    showEditModal [label="Show Edit Student\nModal"];
+    confirmDelete [label="Confirm Delete?", shape=diamond, fillcolor=lightyellow];
+    enterDetails [label="Enter Student\nDetails"];
+    validateAdd [label="Valid Input?", shape=diamond, fillcolor=lightyellow];
+    showError [label="Show Validation\nError", fillcolor=lightcoral];
+    insertStudent [label="Insert to students\nTable"];
+    logAuditAdd [label="Log to Audit Trail", fillcolor=lightcyan];
+    closeModal [label="Close Modal"];
+    refreshList [label="Refresh List"];
+    editDetails [label="Edit Student\nDetails"];
+    validateEdit [label="Valid Input?", shape=diamond, fillcolor=lightyellow];
+    updateStudent [label="Update Student\nRecord"];
+    logAuditUpdate [label="Log to Audit Trail", fillcolor=lightcyan];
+    deleteRecord [label="Delete Student"];
+    logAuditDelete [label="Log to Audit Trail", fillcolor=lightcyan];
+    
+    start -> fetchStudents;
+    fetchStudents -> displayList;
+    displayList -> showFilters;
+    showFilters -> userAction;
+    userAction -> filterList [label="Search"];
+    userAction -> filterStatus [label="Filter Status"];
+    userAction -> showAddModal [label="Add Student"];
+    userAction -> showEditModal [label="Edit Student"];
+    userAction -> confirmDelete [label="Delete Student"];
+    filterList -> displayList;
+    filterStatus -> displayList;
+    showAddModal -> enterDetails;
+    enterDetails -> validateAdd;
+    validateAdd -> showError [label="No"];
+    showError -> enterDetails;
+    validateAdd -> insertStudent [label="Yes"];
+    insertStudent -> logAuditAdd [label="Log Audit:\nstudent.added"];
+    logAuditAdd -> closeModal;
+    closeModal -> refreshList;
+    refreshList -> displayList;
+    showEditModal -> editDetails;
+    editDetails -> validateEdit;
+    validateEdit -> showError [label="No"];
+    validateEdit -> updateStudent [label="Yes"];
+    updateStudent -> logAuditUpdate [label="Log Audit:\nstudent.updated"];
+    logAuditUpdate -> closeModal;
+    confirmDelete -> displayList [label="No"];
+    confirmDelete -> deleteRecord [label="Yes"];
+    deleteRecord -> logAuditDelete [label="Log Audit:\nstudent.deleted"];
+    logAuditDelete -> refreshList;
+}

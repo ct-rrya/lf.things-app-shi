@@ -1,0 +1,64 @@
+// Custody Log (Admin) Flow
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph CustodyLog {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial", fontsize=10];
+    
+    start [label="Admin Opens\nCustody", shape=ellipse, fillcolor=lightgreen];
+    
+    fetchLog [label="Fetch Custody Log"];
+    displayLog [label="Display Log\nEntries"];
+    showFilters [label="Show Filter\nOptions"];
+    userAction [label="User Action", shape=diamond, fillcolor=lightyellow];
+    filterAction [label="Filter by Action\nType"];
+    searchLog [label="Search Log"];
+    showAddModal [label="Show Add Entry\nModal"];
+    selectItem [label="Select Item"];
+    selectAction [label="Select Action", shape=diamond, fillcolor=lightyellow];
+    recordReceived [label="Record: received"];
+    recordReleased [label="Record: released"];
+    recordTransferred [label="Record:\ntransferred"];
+    enterDetails [label="Enter Details"];
+    enterHandler [label="Enter Handler\nName"];
+    addNotes [label="Add Notes\n(Optional)"];
+    submit [label="Submit Entry"];
+    insertLog [label="Insert to\ncustody_log"];
+    updateItem [label="Action =\nreceived?", shape=diamond, fillcolor=lightyellow];
+    setAtAdmin [label="Update Item:\nat_admin"];
+    setRecovered [label="Update Item:\nrecovered"];
+    logAudit [label="Log to Audit Trail", fillcolor=lightcyan];
+    closeModal [label="Close Modal"];
+    refreshLog [label="Refresh Log"];
+    
+    start -> fetchLog;
+    fetchLog -> displayLog;
+    displayLog -> showFilters;
+    showFilters -> userAction;
+    userAction -> filterAction [label="Filter Action"];
+    userAction -> searchLog [label="Search"];
+    userAction -> showAddModal [label="Add Entry"];
+    filterAction -> displayLog;
+    searchLog -> displayLog;
+    showAddModal -> selectItem;
+    selectItem -> selectAction;
+    selectAction -> recordReceived [label="Received"];
+    selectAction -> recordReleased [label="Released"];
+    selectAction -> recordTransferred [label="Transferred"];
+    recordReceived -> enterDetails;
+    recordReleased -> enterDetails;
+    recordTransferred -> enterDetails;
+    enterDetails -> enterHandler;
+    enterHandler -> addNotes;
+    addNotes -> submit;
+    submit -> insertLog;
+    insertLog -> updateItem;
+    updateItem -> setAtAdmin [label="Yes"];
+    updateItem -> setRecovered [label="No"];
+    setAtAdmin -> logAudit [label="Log Audit:\ncustody action"];
+    setRecovered -> logAudit;
+    logAudit -> closeModal;
+    closeModal -> refreshLog;
+    refreshLog -> displayLog;
+}

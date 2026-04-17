@@ -5,25 +5,32 @@ import { useRouter } from 'expo-router';
 import { supabaseAdmin as supabase } from '../../lib/supabaseAdmin';
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({ students: 0, items: 0, lost: 0, recovered: 0, custody: 0 });
+  const [stats, setStats] = useState({ students: 0, items: 0, lost: 0, safe: 0, custody: 0 });
   const [recentItems, setRecentItems] = useState([]);
   const router = useRouter();
 
   useEffect(() => { fetchStats(); fetchRecentItems(); }, []);
 
   async function fetchStats() {
-    const [students, items, lost, recovered, custody] = await Promise.all([
+    const [students, items, lost, safe, custody] = await Promise.all([
       supabase.from('students').select('*', { count: 'exact', head: true }).eq('status', 'active'),
       supabase.from('items').select('*', { count: 'exact', head: true }),
       supabase.from('items').select('*', { count: 'exact', head: true }).eq('status', 'lost'),
-      supabase.from('items').select('*', { count: 'exact', head: true }).eq('status', 'recovered'),
+      supabase.from('items').select('*', { count: 'exact', head: true }).eq('status', 'safe'),
       supabase.from('custody_log').select('*', { count: 'exact', head: true }).eq('action', 'received'),
     ]);
     setStats({
       students: students.count || 0,
       items: items.count || 0,
       lost: lost.count || 0,
-      recovered: recovered.count || 0,
+      safe: safe.count || 0,
+      custody: custody.count || 0,
+    });
+    setStats({
+      students: students.count || 0,
+      items: items.count || 0,
+      lost: lost.count || 0,
+      safe: safe.count || 0,
       custody: custody.count || 0,
     });
   }
@@ -41,12 +48,12 @@ export default function AdminDashboard() {
     { label: 'Active Students', value: stats.students, icon: 'people', color: '#5B8CFF', bg: '#EEF2FF', route: '/admin/students' },
     { label: 'Total Items', value: stats.items, icon: 'cube', color: '#8A8070', bg: '#F5F0E8', route: '/admin/items' },
     { label: 'Currently Lost', value: stats.lost, icon: 'alert-circle', color: '#E53935', bg: '#FFEBEE', route: '/admin/items' },
-    { label: 'Recovered', value: stats.recovered, icon: 'checkmark-circle', color: '#43A047', bg: '#E8F5E9', route: '/admin/items' },
+    { label: 'Safe', value: stats.safe, icon: 'checkmark-circle', color: '#43A047', bg: '#E8F5E9', route: '/admin/items' },
     { label: 'In Custody', value: stats.custody, icon: 'archive', color: '#FB8C00', bg: '#FFF3E0', route: '/admin/custody' },
   ];
 
   function statusColor(s) {
-    return s === 'lost' ? '#E53935' : s === 'recovered' ? '#43A047' : s === 'at_admin' ? '#FB8C00' : '#8A8070';
+    return s === 'lost' ? '#E53935' : s === 'at_admin' ? '#FB8C00' : '#8A8070';
   }
 
   return (

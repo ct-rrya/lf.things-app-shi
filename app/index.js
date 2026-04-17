@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  Alert, StyleSheet, KeyboardAvoidingView, Platform, ScrollView,
+  Alert, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -17,6 +17,8 @@ export default function AuthScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+  const [showTerms, setShowTerms] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -51,6 +53,12 @@ export default function AuthScreen() {
   }
 
   async function handleSignUp() {
+    if (!termsAccepted) {
+      Alert.alert('Terms Required', 'Please accept the Terms & Conditions to continue');
+      setShowTerms(true);
+      return;
+    }
+    
     if (!studentId.trim() || !email.trim() || !password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
@@ -68,33 +76,83 @@ export default function AuthScreen() {
         .eq('student_id', studentId.trim())
         .maybeSingle();
 
-      if (lookupErr || !student) {
+      console.log('Student lookup:', { student, lookupErr });
+
+      if (lookupErr) {
+        console.error('Lookup error:', lookupErr);
+        Alert.alert('Database Error', lookupErr.message);
+        return;
+      }
+      
+      if (!student) {
         Alert.alert('Not in the System',
           'Your Student ID was not found. Contact the Student Affairs Office.');
         return;
       }
+      
       if (student.status !== 'active') {
         Alert.alert('Inactive', 'Your student record is inactive. Contact the Student Affairs Office.');
         return;
       }
+      
       if (student.auth_user_id) {
         Alert.alert('Already Registered', 'This Student ID already has an account. Please sign in.');
         setMode('login');
         return;
       }
 
+      // Create auth account
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: { emailRedirectTo: undefined },
       });
+      
       if (error) throw error;
 
+      console.log('Auth signup result:', data);
+
+      // Link auth account to student record
       if (data.user) {
-        await supabase
+        console.log('Linking user:', data.user.id, 'to student:', studentId.trim());
+        
+        // Update student record with auth_user_id
+        const { data: updateData, error: updateErr } = await supabase
           .from('students')
           .update({ auth_user_id: data.user.id, email: email.trim() })
-          .eq('student_id', studentId.trim());
+          .eq('student_id', studentId.trim())
+          .select();
+        
+        if (updateErr) {
+          console.error('Update error:', updateErr);
+          Alert.alert('Warning', 'Account created but failed to link to student record. Contact admin.');
+        } else {
+          console.log('Student record updated successfully:', updateData);
+        }
+
+        // Fetch the student's full name
+        const { data: studentData, error: fetchErr } = await supabase
+          .from('students')
+          .select('full_name')
+          .eq('student_id', studentId.trim())
+          .single();
+
+        console.log('Fetched student data:', studentData, fetchErr);
+
+        // Create profile record with display_name
+        if (studentData?.full_name) {
+          const { data: profileData, error: profileErr } = await supabase
+            .from('profiles')
+            .upsert({
+              id: data.user.id,
+              display_name: studentData.full_name,
+              avatar_seed: studentId.trim(),
+            })
+            .select();
+          console.log('Profile creation result:', profileData, profileErr);
+        } else {
+          console.warn('No full_name found in student record');
+        }
       }
 
       Alert.alert('Account Created', 'You can now sign in with your email and password.');
@@ -102,6 +160,7 @@ export default function AuthScreen() {
       setStudentId('');
       setPassword('');
     } catch (err) {
+      console.error('Signup error:', err);
       Alert.alert('Error', err.message);
     } finally {
       setLoading(false);
@@ -251,12 +310,125 @@ export default function AuthScreen() {
                   {loading ? 'LOADING…' : isLogin ? 'SIGN IN' : 'CREATE ACCOUNT'}
                 </Text>
               </TouchableOpacity>
+
+              {/* Terms checkbox for signup */}
+              {!isLogin && (
+                <TouchableOpacity
+                  style={styles.termsCheckRow}
+                  onPress={() => setShowTerms(true)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+                    {termsAccepted && <Ionicons name="checkmark" size={11} color="#FFFFFF" />}
+                  </View>
+                  <Text style={styles.termsCheckLabel}>
+                    I agree to the Terms & Conditions
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
           <Text style={styles.footer}>LF but for things · v1.0.0</Text>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* ── TERMS & CONDITIONS MODAL ── */}
+      <Modal visible={showTerms} transparent animationType="slide" onRequestClose={() => setShowTerms(false)}>
+        <View style={styles.termsOverlay}>
+          <View style={styles.termsModal}>
+            <View style={styles.termsHeader}>
+              <View style={styles.termsIconWrap}>
+                <Ionicons name="document-text" size={24} color="#F5C842" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.termsTitle}>Terms & Conditions</Text>
+                <Text style={styles.termsSub}>LF.things — CTU Daanbantayan Lost & Found</Text>
+              </View>
+            </View>
+
+            <ScrollView style={styles.termsBody} showsVerticalScrollIndicator={false}>
+              <Text style={styles.termsSection}>What is LF.things?</Text>
+              <Text style={styles.termsText}>
+                LF.things is the official Lost & Found system of CTU Daanbantayan. It helps students register their belongings with a unique QR code, report found items, and get notified when a match is detected.
+              </Text>
+
+              <Text style={styles.termsSection}>What the app does</Text>
+              <Text style={styles.termsText}>
+                • Register your personal items and generate a QR code sticker{'\n'}
+                • Mark items as lost and receive AI-powered match suggestions{'\n'}
+                • Report found items anonymously or with contact details{'\n'}
+                • Communicate with finders or owners through in-app chat{'\n'}
+                • Notify the SSG Office when an item is turned in
+              </Text>
+
+              <Text style={styles.termsSection}>Important disclaimer</Text>
+              <View style={styles.disclaimerBox}>
+                <View style={styles.disclaimerIcon}>
+                  <Ionicons name="alert-circle" size={20} color="#E53935" />
+                </View>
+                <Text style={styles.disclaimerText}>
+                  LF.things is a tool to assist in recovering lost items, but it does NOT guarantee that your lost item will be found or returned. The app relies on the community reporting found items. The administrators, SSG Office, and CTU Daanbantayan staff are NOT responsible for physically searching for, locating, or recovering your lost belongings. This system simply increases the chances of reuniting lost items with their owners through technology and community cooperation.
+                </Text>
+              </View>
+
+              <Text style={styles.termsSection}>Data we collect</Text>
+              <Text style={styles.termsText}>
+                We collect your student ID, name, program, year level, email address, and photos of registered items. This information is used solely to operate the lost and found system and is accessible only to you and authorized CTU Daanbantayan staff.
+              </Text>
+
+              <Text style={styles.termsSection}>What we do NOT do</Text>
+              <Text style={styles.termsText}>
+                • We do not sell or share your data with third parties{'\n'}
+                • We do not use your information for marketing{'\n'}
+                • We do not store payment information of any kind{'\n'}
+                • We do not track your location
+              </Text>
+
+              <Text style={styles.termsSection}>Your responsibilities</Text>
+              <Text style={styles.termsText}>
+                By creating an account, you agree to provide accurate information, use the app only for its intended purpose, and not misuse the system to make false reports or claims.
+              </Text>
+
+              <Text style={styles.termsSection}>Account eligibility</Text>
+              <Text style={styles.termsText}>
+                Only currently enrolled students of CTU Daanbantayan with an active student record may register. Your Student ID must be pre-registered in the system by the Student Affairs Office.
+              </Text>
+
+              <View style={{ height: 16 }} />
+            </ScrollView>
+
+            <View style={styles.termsFooter}>
+              <TouchableOpacity
+                style={styles.termsCheckRowModal}
+                onPress={() => setTermsAccepted(!termsAccepted)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+                  {termsAccepted && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
+                </View>
+                <Text style={styles.termsCheckLabelModal}>
+                  I have read and agree to the Terms & Conditions
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.termsActions}>
+                <TouchableOpacity style={styles.termsBtnCancel} onPress={() => setShowTerms(false)} activeOpacity={0.8}>
+                  <Text style={styles.termsBtnCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.termsBtnAccept, !termsAccepted && { opacity: 0.4 }]}
+                  disabled={!termsAccepted}
+                  onPress={() => setShowTerms(false)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.termsBtnAcceptText}>Accept</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -321,4 +493,111 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700', letterSpacing: 0.5 },
   footer: { textAlign: 'center', color: 'rgba(222,207,157,0.25)', fontSize: 11, marginTop: 28 },
+
+  // ── Terms & Conditions ──
+  termsCheckRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8,
+    paddingVertical: 8,
+  },
+  checkbox: {
+    width: 18, height: 18, borderRadius: 5, borderWidth: 2,
+    borderColor: 'rgba(69,53,75,0.2)', justifyContent: 'center',
+    alignItems: 'center', flexShrink: 0,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.grape, borderColor: colors.grape,
+  },
+  termsCheckLabel: {
+    flex: 1, fontSize: 11, color: 'rgba(69,53,75,0.6)',
+    fontWeight: '500', lineHeight: 16,
+  },
+
+  termsOverlay: {
+    flex: 1, backgroundColor: 'rgba(26,22,17,0.6)',
+    justifyContent: 'center', alignItems: 'center',
+    padding: 20,
+  },
+  termsModal: {
+    backgroundColor: '#FFFFFF', borderRadius: 24,
+    maxHeight: '90%', width: '100%', maxWidth: 520,
+    paddingBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  termsHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    padding: 20, borderBottomWidth: 1, borderBottomColor: '#E8E0D0',
+  },
+  termsIconWrap: {
+    width: 48, height: 48, borderRadius: 14,
+    backgroundColor: 'rgba(245,200,66,0.12)',
+    justifyContent: 'center', alignItems: 'center', flexShrink: 0,
+  },
+  termsTitle: {
+    fontSize: 17, fontWeight: '800', color: '#1A1611',
+  },
+  termsSub: {
+    fontSize: 11, color: '#8A8070', marginTop: 2,
+  },
+  termsBody: {
+    paddingHorizontal: 20, paddingTop: 16, maxHeight: 380,
+  },
+  termsSection: {
+    fontSize: 13, fontWeight: '700', color: '#1A1611',
+    marginTop: 16, marginBottom: 6, letterSpacing: 0.2,
+  },
+  termsText: {
+    fontSize: 13, color: '#5A5248', lineHeight: 21,
+  },
+  disclaimerBox: {
+    backgroundColor: '#FFEBEE',
+    borderLeftWidth: 4,
+    borderLeftColor: '#E53935',
+    borderRadius: 12,
+    padding: 14,
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 8,
+  },
+  disclaimerIcon: {
+    flexShrink: 0,
+    marginTop: 2,
+  },
+  disclaimerText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#5A5248',
+    lineHeight: 21,
+    fontWeight: '500',
+  },
+  termsFooter: {
+    padding: 20, borderTopWidth: 1, borderTopColor: '#E8E0D0', gap: 14,
+  },
+  termsCheckRowModal: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+  },
+  termsCheckLabelModal: {
+    flex: 1, fontSize: 13, color: '#1A1611',
+    fontWeight: '500', lineHeight: 19,
+  },
+  termsActions: {
+    flexDirection: 'row', gap: 10,
+  },
+  termsBtnCancel: {
+    flex: 1, paddingVertical: 14, borderRadius: 14,
+    borderWidth: 1.5, borderColor: '#E8E0D0', alignItems: 'center',
+  },
+  termsBtnCancelText: {
+    fontSize: 14, fontWeight: '600', color: '#8A8070',
+  },
+  termsBtnAccept: {
+    flex: 2, paddingVertical: 14, borderRadius: 14,
+    backgroundColor: '#1A1611', alignItems: 'center',
+  },
+  termsBtnAcceptText: {
+    fontSize: 14, fontWeight: '700', color: '#FFFFFF',
+  },
 });

@@ -1,0 +1,74 @@
+// Admin Dashboard Flow
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph AdminDashboard {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial", fontsize=10];
+    
+    start [label="Admin Opens\nAdmin Panel", shape=ellipse, fillcolor=lightgreen];
+    end1 [label="End", shape=ellipse, fillcolor=pink];
+    end2 [label="End", shape=ellipse, fillcolor=pink];
+    end3 [label="End", shape=ellipse, fillcolor=pink];
+    end4 [label="End", shape=ellipse, fillcolor=pink];
+    end5 [label="End", shape=ellipse, fillcolor=pink];
+    end6 [label="End", shape=ellipse, fillcolor=pink];
+    
+    checkRole [label="Is Admin?", shape=diamond, fillcolor=lightyellow];
+    forbidden [label="Show 403 Error", fillcolor=lightcoral];
+    loadDash [label="Load Dashboard"];
+    fetchStats [label="Fetch Statistics"];
+    countStudents [label="Count Active\nStudents"];
+    countItems [label="Count Total Items"];
+    countLost [label="Count Lost Items"];
+    countSafe [label="Count Safe Items"];
+    countCustody [label="Count Items in\nCustody"];
+    fetchRecent [label="Fetch Recent Items"];
+    displayDash [label="Display Dashboard"];
+    showStats [label="Show Stat Cards"];
+    showRecent [label="Show Recent Items\nTable"];
+    showAuditSummary [label="Show Recent\nAudit Activity", fillcolor=lightcyan];
+    userAction [label="User Action", shape=diamond, fillcolor=lightyellow];
+    navStudents [label="Navigate to\n/admin/students"];
+    navItems [label="Navigate to\n/admin/items"];
+    navCustody [label="Navigate to\n/admin/custody"];
+    navUsers [label="Navigate to\n/admin/users"];
+    navAudit [label="Navigate to\n/admin/audit"];
+    loadStudents [label="Load Students\nManagement"];
+    loadItems [label="Load Items\nManagement"];
+    loadCustody [label="Load Custody Log"];
+    loadUsers [label="Load Users\nManagement"];
+    loadAudit [label="Load Audit Log"];
+    
+    start -> checkRole;
+    checkRole -> forbidden [label="No"];
+    forbidden -> end1;
+    checkRole -> loadDash [label="Yes"];
+    loadDash -> fetchStats;
+    fetchStats -> countStudents;
+    countStudents -> countItems;
+    countItems -> countLost;
+    countLost -> countSafe;
+    countSafe -> countCustody;
+    countCustody -> fetchRecent;
+    fetchRecent -> displayDash;
+    displayDash -> showStats;
+    showStats -> showRecent;
+    showRecent -> showAuditSummary;
+    showAuditSummary -> userAction;
+    userAction -> navStudents [label="View Students"];
+    userAction -> navItems [label="View Items"];
+    userAction -> navCustody [label="View Custody"];
+    userAction -> navUsers [label="View Users"];
+    userAction -> navAudit [label="View Audit"];
+    navStudents -> loadStudents;
+    navItems -> loadItems;
+    navCustody -> loadCustody;
+    navUsers -> loadUsers;
+    navAudit -> loadAudit;
+    loadStudents -> end2;
+    loadItems -> end3;
+    loadCustody -> end4;
+    loadUsers -> end5;
+    loadAudit -> end6;
+}

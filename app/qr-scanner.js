@@ -38,14 +38,22 @@ export default function QRScanner() {
         return;
       }
 
-      // Extract UUID from URL
-      // Format: https://yourapp.com/found/[uuid] or /found/[uuid]
-      const urlParts = data.split('/');
-      const uuid = urlParts[urlParts.length - 1];
+      // Parse the URL and navigate to the correct in-app route
+      let path = data;
+      try {
+        const url = new URL(data);
+        path = url.pathname; // e.g. /scan/abc-123 or /found/abc-123
+      } catch (_) {
+        // not a full URL, treat as path
+      }
 
-      // Validate UUID format (basic check)
+      // Extract the last two segments: route + id
+      const parts = path.split('/').filter(Boolean);
+      const id = parts[parts.length - 1];
+      const route = parts[parts.length - 2]; // 'scan' or 'found'
+
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(uuid)) {
+      if (!uuidRegex.test(id)) {
         Alert.alert(
           'Invalid QR Code',
           'This QR code is not from LF',
@@ -54,9 +62,8 @@ export default function QRScanner() {
         return;
       }
 
-      // Show success feedback
-      // Navigate to found item detail
-      router.replace(`/found/${uuid}`);
+      // Always go to /scan/ for item QR codes
+      router.replace(`/scan/${id}`);
       
     } catch (err) {
       console.error('Error processing QR code:', err);

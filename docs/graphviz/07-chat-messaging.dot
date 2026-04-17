@@ -1,0 +1,56 @@
+// Chat/Messaging Flow
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph ChatMessaging {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial", fontsize=10];
+    
+    start [label="User Opens\nChat Tab", shape=ellipse, fillcolor=lightgreen];
+    end1 [label="End", shape=ellipse, fillcolor=pink];
+    end2 [label="End", shape=ellipse, fillcolor=pink];
+    
+    fetchThreads [label="Fetch Chat\nThreads"];
+    hasThreads [label="Threads Exist?", shape=diamond, fillcolor=lightyellow];
+    showEmpty [label="Show Empty State", fillcolor=lightyellow];
+    displayList [label="Display Thread\nList"];
+    subscribe [label="Subscribe to\nReal-time Updates"];
+    userSelect [label="User Selects\nThread", shape=diamond, fillcolor=lightyellow];
+    navThread [label="Navigate to\n/chat/thread_id"];
+    loadThread [label="Load Thread\nDetails"];
+    loadMessages [label="Load Messages"];
+    displayChat [label="Display Chat\nInterface"];
+    subMessages [label="Subscribe to\nNew Messages"];
+    userAction [label="User Action", shape=diamond, fillcolor=lightyellow];
+    enterText [label="Enter Message\nText"];
+    sendBtn [label="Tap Send Button"];
+    validate [label="Message Not\nEmpty?", shape=diamond, fillcolor=lightyellow];
+    insertMsg [label="Insert Message\nto DB"];
+    updateThread [label="Update Thread\nlast_message"];
+    incrementUnread [label="Increment Unread\nCount"];
+    clearInput [label="Clear Input Field"];
+    
+    start -> fetchThreads;
+    fetchThreads -> hasThreads;
+    hasThreads -> showEmpty [label="No"];
+    showEmpty -> end1;
+    hasThreads -> displayList [label="Yes"];
+    displayList -> subscribe;
+    subscribe -> userSelect;
+    userSelect -> navThread;
+    navThread -> loadThread;
+    loadThread -> loadMessages;
+    loadMessages -> displayChat;
+    displayChat -> subMessages;
+    subMessages -> userAction;
+    userAction -> enterText [label="Type Message"];
+    userAction -> end2 [label="Back"];
+    enterText -> sendBtn;
+    sendBtn -> validate;
+    validate -> displayChat [label="No"];
+    validate -> insertMsg [label="Yes"];
+    insertMsg -> updateThread;
+    updateThread -> incrementUnread;
+    incrementUnread -> clearInput;
+    clearInput -> displayChat;
+}

@@ -1,0 +1,70 @@
+// Report Found Item Flow
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph ReportFound {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial", fontsize=10];
+    
+    start [label="User Taps\nReport Found", shape=ellipse, fillcolor=lightgreen];
+    end1 [label="End", shape=ellipse, fillcolor=pink];
+    
+    step1 [label="Show Category\nSelection"];
+    selectCat [label="User Selects\nCategory", shape=diamond, fillcolor=lightyellow];
+    step2 [label="Navigate to\nDetails Form"];
+    showForm [label="Show Category-\nSpecific Form"];
+    fillDetails [label="User Fills\nItem Details"];
+    addPhoto [label="Add Photo?", shape=diamond, fillcolor=lightyellow];
+    pickImage [label="Open Image Picker"];
+    photoAdded [label="Photo Added"];
+    requiredPhoto [label="Show: Photo\nRequired", fillcolor=lightyellow];
+    selectLoc [label="Select Location"];
+    locOther [label="Location =\nOther?", shape=diamond, fillcolor=lightyellow];
+    enterCustom [label="Enter Custom\nLocation"];
+    submit [label="User Taps Submit"];
+    validate [label="All Required\nFields?", shape=diamond, fillcolor=lightyellow];
+    showError [label="Show Validation\nError", fillcolor=lightcoral];
+    uploadPhoto [label="Upload Photo to\nStorage"];
+    getURL [label="Get Public URL"];
+    insertFound [label="Insert to\nfound_items Table"];
+    getLost [label="Query Lost Items"];
+    runAI [label="Run AI Matching"];
+    matches [label="Matches Found?", shape=diamond, fillcolor=lightyellow];
+    insertMatches [label="Insert AI Matches"];
+    notifyOwners [label="Create\nNotifications"];
+    showSuccess [label="Show Success Alert", fillcolor=lightgreen];
+    matchCount [label="Show Match Count", fillcolor=lightgreen];
+    navigate [label="Navigate to Home"];
+    
+    start -> step1;
+    step1 -> selectCat;
+    selectCat -> step2;
+    step2 -> showForm;
+    showForm -> fillDetails;
+    fillDetails -> addPhoto;
+    addPhoto -> pickImage [label="Yes"];
+    pickImage -> photoAdded;
+    addPhoto -> requiredPhoto [label="No"];
+    requiredPhoto -> addPhoto;
+    photoAdded -> selectLoc;
+    selectLoc -> locOther;
+    locOther -> enterCustom [label="Yes"];
+    locOther -> enterCustom [label="No"];
+    enterCustom -> submit;
+    submit -> validate;
+    validate -> showError [label="No"];
+    showError -> fillDetails;
+    validate -> uploadPhoto [label="Yes"];
+    uploadPhoto -> getURL;
+    getURL -> insertFound;
+    insertFound -> getLost;
+    getLost -> runAI;
+    runAI -> matches;
+    matches -> insertMatches [label="Yes"];
+    insertMatches -> notifyOwners;
+    matches -> notifyOwners [label="No"];
+    notifyOwners -> showSuccess;
+    showSuccess -> matchCount;
+    matchCount -> navigate;
+    navigate -> end1;
+}

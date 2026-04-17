@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { supabaseAdmin as supabase } from '../../lib/supabaseAdmin';
 import { CTU_PROGRAMS, CTU_YEAR_LEVELS } from '../../lib/ctuConstants';
+import { logStudentChange, AuditActions } from '../../lib/auditLog';
 
 const EMPTY_FORM = { student_id: '', full_name: '', email: '', program: '', year_level: '', section: '' };
 
@@ -23,6 +24,8 @@ export default function AdminStudents() {
   const [csvPreview, setCsvPreview] = useState([]);
   const [csvErrors, setCsvErrors] = useState([]);
   const [importing, setImporting] = useState(false);
+
+  const [confirm, setConfirm] = useState(null); // { message, onConfirm }
 
   useEffect(() => { fetchStudents(); }, [filterProgram, filterStatus]);
 
@@ -55,14 +58,20 @@ export default function AdminStudents() {
     }
     setSaving(true);
     try {
-      const { error } = await supabase.from('students').insert([{
+      const studentData = {
         ...form,
         student_id: form.student_id.trim(),
         full_name: form.full_name.trim(),
         email: form.email.trim() || null,
         section: form.section.trim() || null,
-      }]);
+      };
+      
+      const { data, error } = await supabase.from('students').insert([studentData]).select().single();
       if (error) throw error;
+      
+      // Log audit trail
+      await logStudentChange(AuditActions.STUDENT_ADDED, data.id, null, studentData);
+      
       setShowAddModal(false);
       setForm(EMPTY_FORM);
       fetchStudents();
@@ -75,10 +84,30 @@ export default function AdminStudents() {
   }
 
   // ── Toggle student status ─────────────────────────────────────
-  async function toggleStatus(student) {
+  function confirmToggleStatus(student) {
     const next = student.status === 'active' ? 'inactive' : 'active';
+    setConfirm({
+      message: `Are you sure you want to ${next === 'inactive' ? 'deactivate' : 'activate'} ${student.full_name}?`,
+      detail: next === 'inactive'
+        ? 'They will no longer be able to sign in.'
+        : 'They will be able to sign in again.',
+      danger: next === 'inactive',
+      onConfirm: () => toggleStatus(student, next),
+    });
+  }
+
+  async function toggleStatus(student, next) {
     const { error } = await supabase.from('students').update({ status: next }).eq('id', student.id);
     if (error) { Alert.alert('Error', error.message); return; }
+    
+    // Log audit trail
+    await logStudentChange(
+      AuditActions.STUDENT_STATUS_CHANGED,
+      student.id,
+      { status: student.status, full_name: student.full_name },
+      { status: next, full_name: student.full_name }
+    );
+    
     fetchStudents();
   }
 
@@ -139,8 +168,17 @@ export default function AdminStudents() {
     if (!csvPreview.length) return;
     setImporting(true);
     try {
-      const { error } = await supabase.from('students').upsert(csvPreview, { onConflict: 'student_id' });
+      const { data, error } = await supabase.from('students').upsert(csvPreview, { onConflict: 'student_id' }).select();
       if (error) throw error;
+      
+      // Log bulk import audit trail
+      await logStudentChange(
+        AuditActions.STUDENT_IMPORTED,
+        null,
+        null,
+        { count: csvPreview.length, students: csvPreview.map(s => s.student_id) }
+      );
+      
       setShowImportModal(false);
       setCsvText('');
       setCsvPreview([]);
@@ -187,6 +225,7 @@ export default function AdminStudents() {
           />
         </View>
         <View style={styles.filterRow}>
+          <Text style={styles.filterLabel}>Status:</Text>
           {['active', 'inactive', 'graduated', ''].map((s) => (
             <TouchableOpacity
               key={s}
@@ -205,9 +244,15 @@ export default function AdminStudents() {
       <ScrollView style={styles.tableWrap} showsVerticalScrollIndicator={false}>
         <View style={styles.table}>
           <View style={[styles.tableRow, styles.tableHead]}>
-            {['Student ID', 'Full Name', 'Program', 'Year', 'Section', 'Status', ''].map((h) => (
-              <Text key={h} style={[styles.cell, styles.headCell]}>{h}</Text>
-            ))}
+            <Text style={[styles.cell, styles.headCell]}>Student ID</Text>
+            <Text style={[styles.cell, styles.headCell, { flex: 2 }]}>Full Name</Text>
+            <Text style={[styles.cell, styles.headCell]}>Program</Text>
+            <Text style={[styles.cell, styles.headCell]}>Year</Text>
+            <Text style={[styles.cell, styles.headCell]}>Section</Text>
+            <Text style={[styles.cell, styles.headCell, { flex: 1.5 }]}>Email</Text>
+            <Text style={[styles.cell, styles.headCell]}>Joined</Text>
+            <Text style={[styles.cell, styles.headCell]}>Status</Text>
+            <Text style={[styles.cell, styles.headCell]}></Text>
           </View>
           {loading ? (
             <View style={styles.emptyRow}><Text style={styles.emptyText}>Loading…</Text></View>
@@ -217,9 +262,16 @@ export default function AdminStudents() {
             <View key={s.id} style={styles.tableRow}>
               <Text style={[styles.cell, styles.idCell]}>{s.student_id}</Text>
               <Text style={[styles.cell, styles.nameCell]} numberOfLines={1}>{s.full_name}</Text>
-              <Text style={[styles.cell, styles.subCell]}>{s.program}</Text>
-              <Text style={[styles.cell, styles.subCell]}>{s.year_level}</Text>
+              <Text style={[styles.cell, styles.subCell]}>{s.program || '—'}</Text>
+              <Text style={[styles.cell, styles.subCell]}>{s.year_level || '—'}</Text>
               <Text style={[styles.cell, styles.subCell]}>{s.section || '—'}</Text>
+              <Text style={[styles.cell, styles.emailCell]} numberOfLines={1}>
+                {s.email || '—'}
+                {s.auth_user_id && <Text style={styles.registeredBadge}> ✓</Text>}
+              </Text>
+              <Text style={[styles.cell, styles.subCell, { fontSize: 11 }]}>
+                {new Date(s.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+              </Text>
               <View style={styles.cell}>
                 <View style={[styles.statusBadge, s.status === 'active' ? styles.badgeActive : styles.badgeInactive]}>
                   <Text style={[styles.badgeText, s.status === 'active' ? styles.badgeTextActive : styles.badgeTextInactive]}>
@@ -227,7 +279,7 @@ export default function AdminStudents() {
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity style={styles.cell} onPress={() => toggleStatus(s)} activeOpacity={0.7}>
+              <TouchableOpacity style={styles.cell} onPress={() => confirmToggleStatus(s)} activeOpacity={0.7}>
                 <Text style={styles.toggleText}>
                   {s.status === 'active' ? 'Deactivate' : 'Activate'}
                 </Text>
@@ -302,6 +354,32 @@ export default function AdminStudents() {
               </TouchableOpacity>
               <TouchableOpacity style={[styles.btnPrimary, saving && { opacity: 0.6 }]} onPress={handleAddStudent} disabled={saving}>
                 <Text style={styles.btnPrimaryText}>{saving ? 'Saving…' : 'Add Student'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── CONFIRM MODAL ── */}
+      <Modal visible={!!confirm} transparent animationType="fade" onRequestClose={() => setConfirm(null)}>
+        <View style={styles.overlay}>
+          <View style={[styles.modal, { maxWidth: 360 }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Confirm Action</Text>
+            </View>
+            <View style={styles.modalBody}>
+              <Text style={{ fontSize: 14, color: '#1A1611', lineHeight: 22 }}>{confirm?.message}</Text>
+              {confirm?.detail && <Text style={{ fontSize: 13, color: '#8A8070', marginTop: 6 }}>{confirm.detail}</Text>}
+            </View>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={styles.btnSecondary} onPress={() => setConfirm(null)}>
+                <Text style={styles.btnSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.btnPrimary, confirm?.danger && { backgroundColor: '#E53935' }]}
+                onPress={() => { confirm?.onConfirm(); setConfirm(null); }}
+              >
+                <Text style={[styles.btnPrimaryText, confirm?.danger && { color: '#FFFFFF' }]}>Confirm</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -422,7 +500,8 @@ const styles = StyleSheet.create({
     borderColor: '#E8E0D0', paddingHorizontal: 12, paddingVertical: 10,
   },
   searchInput: { flex: 1, fontSize: 13, color: '#1A1611', ...(Platform.OS === 'web' && { outlineWidth: 0 }) },
-  filterRow: { flexDirection: 'row', gap: 8 },
+  filterRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  filterLabel: { fontSize: 12, fontWeight: '600', color: '#8A8070' },
   filterChip: {
     paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
     backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E8E0D0',
@@ -439,6 +518,8 @@ const styles = StyleSheet.create({
   headCell: { fontSize: 10, fontWeight: '700', color: '#8A8070', letterSpacing: 0.8, textTransform: 'uppercase' },
   idCell: { fontWeight: '700', color: '#1A1611', fontFamily: Platform.OS === 'web' ? 'monospace' : undefined },
   nameCell: { flex: 2, fontWeight: '600', color: '#1A1611' },
+  emailCell: { flex: 1.5, color: '#8A8070', fontSize: 12 },
+  registeredBadge: { color: '#43A047', fontWeight: '700' },
   subCell: { color: '#8A8070' },
   statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
   badgeActive: { backgroundColor: '#E8F5E9' },

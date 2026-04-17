@@ -1,0 +1,58 @@
+// Item Registration Flow
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph ItemRegistration {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial", fontsize=10];
+    
+    start [label="User Taps\nRegister Item", shape=ellipse, fillcolor=lightgreen];
+    end1 [label="End", shape=ellipse, fillcolor=pink];
+    
+    selectCat [label="Show Category\nSelection"];
+    chooseCat [label="User Selects\nCategory", shape=diamond, fillcolor=lightyellow];
+    loadForm [label="Load Category-\nSpecific Form"];
+    fillForm [label="User Fills\nForm Fields"];
+    addPhoto [label="Add Photo?", shape=diamond, fillcolor=lightyellow];
+    pickImage [label="Open Image Picker"];
+    photoSelected [label="Photo Selected"];
+    addDesc [label="Add Description\n(Optional)"];
+    submit [label="User Taps Submit"];
+    validate [label="All Required\nFields?", shape=diamond, fillcolor=lightyellow];
+    showError [label="Show Validation\nError", fillcolor=lightcoral];
+    uploadPhoto [label="Has Photo?", shape=diamond, fillcolor=lightyellow];
+    upload [label="Upload to\nSupabase Storage"];
+    getURL [label="Get Public URL"];
+    genQR [label="Generate QR\nToken UUID"];
+    insertDB [label="Insert Item to\nDatabase"];
+    success [label="Success?", shape=diamond, fillcolor=lightyellow];
+    dbError [label="Show Database\nError", fillcolor=lightcoral];
+    showSuccess [label="Show Success Alert", fillcolor=lightgreen];
+    navigate [label="Navigate to\nMy Items"];
+    
+    start -> selectCat;
+    selectCat -> chooseCat;
+    chooseCat -> loadForm;
+    loadForm -> fillForm;
+    fillForm -> addPhoto;
+    addPhoto -> pickImage [label="Yes"];
+    pickImage -> photoSelected;
+    addPhoto -> photoSelected [label="No"];
+    photoSelected -> addDesc;
+    addDesc -> submit;
+    submit -> validate;
+    validate -> showError [label="No"];
+    showError -> fillForm;
+    validate -> uploadPhoto [label="Yes"];
+    uploadPhoto -> upload [label="Yes"];
+    upload -> getURL;
+    uploadPhoto -> getURL [label="No"];
+    getURL -> genQR;
+    genQR -> insertDB;
+    insertDB -> success;
+    success -> dbError [label="No"];
+    dbError -> fillForm;
+    success -> showSuccess [label="Yes"];
+    showSuccess -> navigate;
+    navigate -> end1;
+}

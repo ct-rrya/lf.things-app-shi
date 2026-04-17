@@ -1,0 +1,70 @@
+// Profile & Settings Flow
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph ProfileSettings {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial", fontsize=10];
+    
+    start [label="User Opens\nProfile", shape=ellipse, fillcolor=lightgreen];
+    end2 [label="End", shape=ellipse, fillcolor=pink];
+    end3 [label="End", shape=ellipse, fillcolor=pink];
+    
+    fetchUser [label="Fetch User Data"];
+    fetchStudent [label="Fetch Student Info"];
+    fetchStats [label="Fetch User Stats"];
+    display [label="Display Profile"];
+    showInfo [label="Show User Info"];
+    showStats [label="Show Statistics"];
+    showMenu [label="Show Menu Options"];
+    userAction [label="User Action", shape=diamond, fillcolor=lightyellow];
+    navSettings [label="Navigate to\nAccount Settings"];
+    navReports [label="Navigate to\nMy Reports"];
+    confirmSignOut [label="Confirm Sign Out?", shape=diamond, fillcolor=lightyellow];
+    loadSettings [label="Load Settings\nScreen"];
+    showSettings [label="Show Settings\nOptions"];
+    settingAction [label="User Action", shape=diamond, fillcolor=lightyellow];
+    editName [label="Edit Name"];
+    editEmail [label="Edit Email"];
+    changePass [label="Change Password"];
+    updateProfile [label="Update User\nMetadata"];
+    updateAuth [label="Update Auth Email"];
+    showSuccess [label="Show Success\nMessage", fillcolor=lightgreen];
+    loadReports [label="Load Found Reports"];
+    displayReports [label="Display Reports\nList"];
+    signOut [label="Call Supabase\nSign Out"];
+    clearSession [label="Clear Session"];
+    navAuth [label="Navigate to Auth\nScreen"];
+    
+    start -> fetchUser;
+    fetchUser -> fetchStudent;
+    fetchStudent -> fetchStats;
+    fetchStats -> display;
+    display -> showInfo;
+    showInfo -> showStats;
+    showStats -> showMenu;
+    showMenu -> userAction;
+    userAction -> navSettings [label="Account Settings"];
+    userAction -> navReports [label="My Reports"];
+    userAction -> confirmSignOut [label="Sign Out"];
+    navSettings -> loadSettings;
+    loadSettings -> showSettings;
+    showSettings -> settingAction;
+    settingAction -> editName [label="Update Name"];
+    settingAction -> editEmail [label="Update Email"];
+    settingAction -> changePass [label="Change Password"];
+    editName -> updateProfile;
+    editEmail -> updateAuth;
+    changePass -> updateAuth;
+    updateProfile -> showSuccess;
+    updateAuth -> showSuccess;
+    showSuccess -> loadSettings;
+    navReports -> loadReports;
+    loadReports -> displayReports;
+    displayReports -> end2;
+    confirmSignOut -> display [label="No"];
+    confirmSignOut -> signOut [label="Yes"];
+    signOut -> clearSession;
+    clearSession -> navAuth;
+    navAuth -> end3;
+}

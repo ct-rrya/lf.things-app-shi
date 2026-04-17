@@ -18,26 +18,32 @@ export default function RootLayout() {
   const router = useRouter();
 
   useEffect(() => {
-    // Request push notification permissions (mobile only)
-    if (Platform.OS !== 'web') {
-      Notifications.requestPermissionsAsync().then(({ status }) => {
-        if (status !== 'granted') {
-          console.log('Notification permissions not granted');
+    async function initialize() {
+      try {
+        // Request push notification permissions (mobile only)
+        if (Platform.OS !== 'web') {
+          Notifications.requestPermissionsAsync().catch(err => {
+            console.log('Notification permissions error:', err);
+          });
         }
-      });
+
+        // Don't redirect if the user is on a public scan link (web only)
+        const isScanRoute = Platform.OS === 'web' && typeof window !== 'undefined'
+          ? window.location.pathname.startsWith('/scan/')
+          : false;
+
+        const { data: { session } } = await supabase.auth.getSession();
+        setReady(true);
+        if (session && !isScanRoute) {
+          router.replace('/(tabs)/home');
+        }
+      } catch (error) {
+        console.error('Initialization error:', error);
+        setReady(true); // Still show the app even if there's an error
+      }
     }
 
-    // Don't redirect if the user is on a public scan link
-    const isScanRoute = typeof window !== 'undefined'
-      ? window.location.pathname.startsWith('/scan/')
-      : false;
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setReady(true);
-      if (session && !isScanRoute) {
-        router.replace('/(tabs)/home');
-      }
-    });
+    initialize();
 
     // Only handle explicit sign-out to redirect to login
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event) => {
@@ -46,16 +52,21 @@ export default function RootLayout() {
       }
     });
 
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
-      const data = response.notification.request.content.data;
-      if (data.found_item_id) {
-        router.push(`/found/${data.found_item_id}`);
-      }
-    });
+    let responseSubscription;
+    if (Platform.OS !== 'web') {
+      responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+        const data = response.notification.request.content.data;
+        if (data.found_item_id) {
+          router.push(`/found/${data.found_item_id}`);
+        }
+      });
+    }
 
     return () => {
       subscription.unsubscribe();
-      responseSubscription.remove();
+      if (responseSubscription) {
+        responseSubscription.remove();
+      }
     };
   }, []);
 

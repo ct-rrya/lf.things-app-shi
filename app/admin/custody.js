@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabaseAdmin as supabase } from '../../lib/supabaseAdmin';
+import { logCustodyAction, AuditActions } from '../../lib/auditLog';
 
 export default function AdminCustody() {
   const [log, setLog] = useState([]);
@@ -13,6 +14,7 @@ export default function AdminCustody() {
   const [shelfTag, setShelfTag] = useState('');
   const [notes, setNotes] = useState('');
   const [action, setAction] = useState('received');
+  const [confirm, setConfirm] = useState(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { fetchLog(); }, []);
@@ -39,21 +41,55 @@ export default function AdminCustody() {
     setItemResults(data || []);
   }
 
+  function requestLog() {
+    if (!selectedItem) { Alert.alert('Select an item first'); return; }
+    setConfirm({
+      message: `Log "${action}" for ${selectedItem.name}?`,
+      detail: action === 'received'
+        ? 'Item status will be updated to "at_admin".'
+        : action === 'claimed' || action === 'returned'
+        ? 'Item status will be updated to "safe".'
+        : 'This action will be recorded in the custody log.',
+      danger: action === 'disposed',
+      onConfirm: handleLog,
+    });
+  }
+
   async function handleLog() {
     if (!selectedItem) { Alert.alert('Select an item first'); return; }
     setSaving(true);
     try {
-      await supabase.from('custody_log').insert([{
+      const custodyData = {
         item_id: selectedItem.id,
         action,
         shelf_tag: shelfTag.trim() || null,
         notes: notes.trim() || null,
-      }]);
+      };
+      
+      await supabase.from('custody_log').insert([custodyData]);
+      
+      // Update item status based on action
       if (action === 'received') {
         await supabase.from('items').update({ status: 'at_admin' }).eq('id', selectedItem.id);
       } else if (action === 'claimed' || action === 'returned') {
-        await supabase.from('items').update({ status: 'recovered' }).eq('id', selectedItem.id);
+        await supabase.from('items').update({ status: 'safe' }).eq('id', selectedItem.id);
       }
+      
+      // Log audit trail
+      const auditAction = {
+        'received': AuditActions.CUSTODY_RECEIVED,
+        'claimed': AuditActions.CUSTODY_CLAIMED,
+        'returned': AuditActions.CUSTODY_RETURNED,
+        'disposed': AuditActions.CUSTODY_DISPOSED,
+      }[action];
+      
+      await logCustodyAction(auditAction, selectedItem.id, {
+        item_name: selectedItem.name,
+        action,
+        shelf_tag: shelfTag.trim() || null,
+        notes: notes.trim() || null,
+      });
+      
       setShowModal(false);
       setSelectedItem(null);
       setItemSearch('');
@@ -88,9 +124,12 @@ export default function AdminCustody() {
       <ScrollView style={styles.tableWrap}>
         <View style={styles.table}>
           <View style={[styles.tableRow, styles.tableHead]}>
-            {['Item', 'Category', 'Action', 'Shelf', 'Notes', 'Date'].map(h => (
-              <Text key={h} style={[styles.cell, styles.headCell]}>{h}</Text>
-            ))}
+            <Text style={[styles.cell, styles.headCell, { flex: 2 }]}>Item</Text>
+            <Text style={[styles.cell, styles.headCell]}>Category</Text>
+            <Text style={[styles.cell, styles.headCell]}>Action</Text>
+            <Text style={[styles.cell, styles.headCell]}>Shelf</Text>
+            <Text style={[styles.cell, styles.headCell, { flex: 1.5 }]}>Notes</Text>
+            <Text style={[styles.cell, styles.headCell]}>Date</Text>
           </View>
           {loading ? (
             <View style={styles.emptyRow}><Text style={styles.emptyText}>Loading…</Text></View>
@@ -106,8 +145,10 @@ export default function AdminCustody() {
                 </View>
               </View>
               <Text style={[styles.cell, styles.subCell]}>{entry.shelf_tag || '—'}</Text>
-              <Text style={[styles.cell, styles.subCell]} numberOfLines={1}>{entry.notes || '—'}</Text>
-              <Text style={[styles.cell, styles.subCell]}>{new Date(entry.created_at).toLocaleDateString()}</Text>
+              <Text style={[styles.cell, styles.notesCell]} numberOfLines={1}>{entry.notes || '—'}</Text>
+              <Text style={[styles.cell, styles.subCell, { fontSize: 11 }]}>
+                {new Date(entry.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+              </Text>
             </View>
           ))}
         </View>
@@ -173,8 +214,33 @@ export default function AdminCustody() {
               <TouchableOpacity style={styles.btnSecondary} onPress={() => setShowModal(false)}>
                 <Text style={styles.btnSecondaryText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.btnPrimary, saving && { opacity: 0.6 }]} onPress={handleLog} disabled={saving}>
+              <TouchableOpacity style={[styles.btnPrimary, saving && { opacity: 0.6 }]} onPress={requestLog} disabled={saving}>
                 <Text style={styles.btnPrimaryText}>{saving ? 'Saving…' : 'Log Action'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      {/* ── CONFIRM MODAL ── */}
+      <Modal visible={!!confirm} transparent animationType="fade" onRequestClose={() => setConfirm(null)}>
+        <View style={styles.overlay}>
+          <View style={[styles.modal, { maxWidth: 360 }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Confirm Action</Text>
+            </View>
+            <View style={styles.modalBody}>
+              <Text style={{ fontSize: 14, color: '#1A1611', lineHeight: 22 }}>{confirm?.message}</Text>
+              {confirm?.detail && <Text style={{ fontSize: 13, color: '#8A8070', marginTop: 6 }}>{confirm.detail}</Text>}
+            </View>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={styles.btnSecondary} onPress={() => setConfirm(null)}>
+                <Text style={styles.btnSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.btnPrimary, confirm?.danger && { backgroundColor: '#E53935' }]}
+                onPress={() => { confirm?.onConfirm(); setConfirm(null); }}
+              >
+                <Text style={[styles.btnPrimaryText, confirm?.danger && { color: '#FFFFFF' }]}>Confirm</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -200,6 +266,7 @@ const styles = StyleSheet.create({
   cell: { flex: 1, fontSize: 13 },
   headCell: { fontSize: 10, fontWeight: '700', color: '#8A8070', letterSpacing: 0.8, textTransform: 'uppercase' },
   nameCell: { flex: 2, fontWeight: '600', color: '#1A1611' },
+  notesCell: { flex: 1.5, color: '#8A8070' },
   subCell: { color: '#8A8070' },
   badge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
   badgeText: { fontSize: 11, fontWeight: '700' },

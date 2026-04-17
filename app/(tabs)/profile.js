@@ -4,6 +4,7 @@ import {
   Platform, ScrollView, StatusBar, Modal, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SvgUri } from 'react-native-svg';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
 import { colors } from '../../styles/colors';
@@ -117,11 +118,19 @@ export default function Profile() {
             onPress={() => router.push('/account-settings')}
             activeOpacity={0.85}
           >
-            <Image
-              source={{ uri: avatarUrl }}
-              style={styles.avatarImg}
-              resizeMode="cover"
-            />
+            {Platform.OS === 'web' ? (
+              <Image
+                source={{ uri: avatarUrl }}
+                style={styles.avatarImg}
+                resizeMode="cover"
+              />
+            ) : (
+              <SvgUri
+                uri={avatarUrl}
+                width="100%"
+                height="100%"
+              />
+            )}
           </TouchableOpacity>
 
           <Text style={styles.displayName} numberOfLines={1}>{displayName}</Text>
