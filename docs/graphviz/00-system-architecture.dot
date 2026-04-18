@@ -1,0 +1,126 @@
+// LF.things - System Architecture Overview
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph SystemArchitecture {
+    // Graph settings
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fontname="Arial"];
+    edge [fontname="Arial", fontsize=9];
+    
+    // User Layer
+    subgraph cluster_users {
+        label="Users";
+        style=filled;
+        fillcolor=lightblue;
+        
+        student [label="Students\n(Mobile/Web)", shape=person, fillcolor=white];
+        admin [label="SSG Admin\n(Web Dashboard)", shape=person, fillcolor=white];
+    }
+    
+    // Application Layer
+    subgraph cluster_app {
+        label="Application Layer";
+        style=filled;
+        fillcolor=lightgreen;
+        
+        mobile [label="Mobile App\n(React Native + Expo)\n\niOS & Android", fillcolor=white];
+        web [label="Web Interface\n(React Native Web)\n\nBrowser Access", fillcolor=white];
+    }
+    
+    // Core Features
+    subgraph cluster_features {
+        label="Core Features";
+        style=filled;
+        fillcolor=lightyellow;
+        
+        auth [label="Authentication\n(Supabase Auth)", fillcolor=white];
+        items [label="Item Management\n(CRUD Operations)", fillcolor=white];
+        qr [label="QR Code System\n(Generate & Scan)", fillcolor=white];
+        matching [label="AI Matching\n(Groq API)", fillcolor=white];
+        chat [label="Messaging\n(Real-time)", fillcolor=white];
+        notif [label="Notifications\n(Push & In-app)", fillcolor=white];
+        adminPanel [label="Admin Panel\n(Management)", fillcolor=white];
+    }
+    
+    // Backend Services
+    subgraph cluster_backend {
+        label="Backend Services";
+        style=filled;
+        fillcolor=lavender;
+        
+        supabase [label="Supabase\n\n• PostgreSQL Database\n• Real-time Subscriptions\n• Row Level Security\n• Storage (Photos)", fillcolor=white, fontsize=10];
+        groq [label="Groq API\n\n• AI Item Matching\n• Description Analysis\n• Confidence Scoring", fillcolor=white, fontsize=10];
+        expo [label="Expo Services\n\n• Push Notifications\n• Camera Access\n• Image Picker", fillcolor=white, fontsize=10];
+    }
+    
+    // Database Tables
+    subgraph cluster_database {
+        label="Database Schema";
+        style=filled;
+        fillcolor=mistyrose;
+        
+        db1 [label="students\n(Master List)", shape=cylinder, fillcolor=white];
+        db2 [label="profiles\n(User Data)", shape=cylinder, fillcolor=white];
+        db3 [label="items\n(Registered Items)", shape=cylinder, fillcolor=white];
+        db4 [label="found_items\n(Found Reports)", shape=cylinder, fillcolor=white];
+        db5 [label="matches\n(AI Matches)", shape=cylinder, fillcolor=white];
+        db6 [label="messages\n(Chat History)", shape=cylinder, fillcolor=white];
+        db7 [label="notifications\n(Alerts)", shape=cylinder, fillcolor=white];
+        db8 [label="custody_logs\n(SSG Tracking)", shape=cylinder, fillcolor=white];
+        db9 [label="audit_logs\n(Activity Tracking)", shape=cylinder, fillcolor=white];
+    }
+    
+    // User to App
+    student -> mobile;
+    student -> web;
+    admin -> web;
+    
+    // App to Features
+    mobile -> auth;
+    mobile -> items;
+    mobile -> qr;
+    mobile -> matching;
+    mobile -> chat;
+    mobile -> notif;
+    
+    web -> auth;
+    web -> items;
+    web -> matching;
+    web -> chat;
+    web -> notif;
+    web -> adminPanel;
+    
+    // Features to Backend
+    auth -> supabase [label="User auth"];
+    items -> supabase [label="CRUD ops"];
+    qr -> supabase [label="Token lookup"];
+    matching -> groq [label="AI analysis"];
+    matching -> supabase [label="Store matches"];
+    chat -> supabase [label="Real-time"];
+    notif -> expo [label="Push notif"];
+    notif -> supabase [label="In-app notif"];
+    adminPanel -> supabase [label="Admin queries"];
+    
+    // Backend to Database
+    supabase -> db1 [style=dashed];
+    supabase -> db2 [style=dashed];
+    supabase -> db3 [style=dashed];
+    supabase -> db4 [style=dashed];
+    supabase -> db5 [style=dashed];
+    supabase -> db6 [style=dashed];
+    supabase -> db7 [style=dashed];
+    supabase -> db8 [style=dashed];
+    supabase -> db9 [style=dashed];
+    
+    // Tech Stack
+    subgraph cluster_tech {
+        label="Technology Stack";
+        style=dashed;
+        
+        t1 [label="React Native 0.83", shape=note, fillcolor=white];
+        t2 [label="Expo 55", shape=note, fillcolor=white];
+        t3 [label="Supabase", shape=note, fillcolor=white];
+        t4 [label="Groq API", shape=note, fillcolor=white];
+        t5 [label="VS Code", shape=note, fillcolor=white];
+    }
+}

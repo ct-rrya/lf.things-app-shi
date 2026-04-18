@@ -4,6 +4,12 @@ This directory contains Graphviz DOT files for all major features in the LF (Los
 
 ## 📁 Files
 
+### Overview & Architecture
+0. **00-general-workflow.dot** - Complete application workflow (all features)
+0. **00-simplified-workflow.dot** - Simplified 6-stage user journey
+0. **00-system-architecture.dot** - System architecture and tech stack
+
+### Feature Flowcharts
 1. **01-authentication.dot** - Authentication & Registration Flow
 2. **02-item-registration.dot** - Item Registration Flow
 3. **03-qr-scanning.dot** - QR Code Scanning Flow
@@ -18,6 +24,11 @@ This directory contains Graphviz DOT files for all major features in the LF (Los
 12. **12-custody-log.dot** - Custody Log (Admin) Flow
 13. **13-profile-settings.dot** - Profile & Settings Flow
 14. **14-home-dashboard.dot** - Home Dashboard Flow
+
+### Roadmap Visualizations
+15. **15-roadmap-timeline.dot** - Development roadmap with timeline (Feb-Apr 2026 + Future)
+16. **16-roadmap-features.dot** - Feature dependencies and enhancement roadmap
+17. **17-roadmap-milestones.dot** - Major milestones and success metrics
 
 ## 🎨 How to View
 

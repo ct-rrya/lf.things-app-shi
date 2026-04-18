@@ -1,0 +1,212 @@
+%% LF.things Visual Roadmap
+%% This file contains Mermaid diagrams for the project roadmap
+%% View at: https://mermaid.live or with Mermaid preview extensions
+
+%% ============================================
+%% GANTT CHART - Timeline View
+%% ============================================
+
+gantt
+    title LF.things Development Roadmap
+    dateFormat YYYY-MM-DD
+    
+    section Completed (Feb 23 - Apr 10, 2026)
+    Phase 1: Foundation           :done, p1, 2026-02-23, 2026-03-01
+    Phase 2: AI Matching          :done, p2, 2026-03-01, 2026-03-08
+    Phase 3: Communication        :done, p3, 2026-03-08, 2026-03-15
+    Phase 4: User Dashboard       :done, p4, 2026-03-15, 2026-03-22
+    Phase 5: Admin Panel          :done, p5, 2026-03-22, 2026-04-01
+    Phase 6: Security & Polish    :done, p6, 2026-04-01, 2026-04-10
+    
+    section Future
+    Phase 7: Enhanced UX          :active, p7, 2026-05, 2026-09
+    Phase 8: AI Improvements      :p8, 2026-07, 2026-12
+    Phase 9: Analytics            :p9, 2026-10, 2027-01
+    Phase 10: Integration         :p10, 2027-01, 2027-06
+    Phase 11: Community           :p11, 2027-04, 2027-09
+    Phase 12: Advanced Admin      :p12, 2027-07, 2027-12
+
+%% ============================================
+%% TIMELINE - Feature Evolution
+%% ============================================
+
+timeline
+    title LF.things Feature Evolution
+    Week 1 (Feb 23-29) : Foundation & Core Features
+                       : Authentication System
+                       : Item Registration
+                       : QR Code Generation
+    Week 2 (Mar 1-7) : AI & Matching
+                     : Gemini AI Integration
+                     : Match Algorithm
+                     : Confidence Scoring
+    Week 3 (Mar 8-14) : Communication
+                      : In-App Messaging
+                      : Push Notifications
+                      : Real-time Updates
+    Week 4 (Mar 15-21) : User Dashboard
+                       : Home Dashboard
+                       : My Items Management
+                       : Profile Settings
+    Week 5 (Mar 22-31) : Admin Panel
+                       : Admin Dashboard
+                       : Student Management
+                       : User Management
+                       : Item Management
+    Week 6 (Apr 1-10) : Security & Polish
+                      : Audit Logging
+                      : Custody Tracking
+                      : RLS Policies
+                      : Bug Fixes
+    2026 Q2-Q3 : Enhanced UX
+               : Offline Mode
+               : Dark Theme
+               : Multi-language
+    2026 Q3-Q4 : AI Evolution
+               : Image Recognition
+               : ML Training
+               : Advanced Matching
+    2027       : Expansion
+               : Multi-Campus
+               : API Development
+               : Community Features
+
+%% ============================================
+%% FEATURE DEPENDENCY GRAPH
+%% ============================================
+
+graph TB
+    subgraph "✅ Completed Features"
+        A[Authentication & Registration]
+        B[Item Management & QR Codes]
+        C[AI Matching System]
+        D[Messaging & Notifications]
+        E[Admin Dashboard]
+        F[Audit Logging]
+    end
+    
+    subgraph "🚀 Phase 7: Enhanced UX"
+        G[Offline Mode]
+        H[Dark Theme]
+        I[Multi-language]
+        J[Advanced Search]
+    end
+    
+    subgraph "🤖 Phase 8: AI Evolution"
+        K[Image Recognition]
+        L[ML Model Training]
+        M[Visual Matching]
+        N[Predictive Analytics]
+    end
+    
+    subgraph "📊 Phase 9: Analytics"
+        O[Admin Dashboard]
+        P[Recovery Statistics]
+        Q[Trend Analysis]
+        R[Custom Reports]
+    end
+    
+    subgraph "🔗 Phase 10: Integration"
+        S[Multi-Campus Support]
+        T[Public API]
+        U[External Systems]
+        V[Webhooks]
+    end
+    
+    A --> G
+    B --> J
+    C --> K
+    C --> L
+    D --> I
+    E --> O
+    F --> P
+    
+    G --> S
+    K --> M
+    L --> N
+    O --> Q
+    J --> R
+    
+    S --> T
+    T --> U
+    U --> V
+    
+    style A fill:#90EE90
+    style B fill:#90EE90
+    style C fill:#90EE90
+    style D fill:#90EE90
+    style E fill:#90EE90
+    style F fill:#90EE90
+    style G fill:#FFD700
+    style H fill:#FFD700
+    style I fill:#FFD700
+    style J fill:#FFD700
+
+%% ============================================
+%% PHASE BREAKDOWN - Detailed View
+%% ============================================
+
+graph LR
+    subgraph Phase7["Phase 7: Enhanced UX (Q2-Q3 2026)"]
+        UX1[Offline Mode]
+        UX2[Dark Theme]
+        UX3[Multi-language]
+        UX4[Advanced Search]
+        UX5[Onboarding Tutorial]
+    end
+    
+    subgraph Phase8["Phase 8: AI Evolution (Q3-Q4 2026)"]
+        AI1[Image Recognition]
+        AI2[ML Training]
+        AI3[Visual Matching]
+        AI4[Predictive Analytics]
+        AI5[Auto Categorization]
+    end
+    
+    subgraph Phase9["Phase 9: Analytics (Q4 2026)"]
+        AN1[Recovery Rate Stats]
+        AN2[Trend Analysis]
+        AN3[Custom Reports]
+        AN4[Visual Charts]
+        AN5[Export Tools]
+    end
+    
+    subgraph Phase10["Phase 10: Integration (2027)"]
+        INT1[Multi-Campus]
+        INT2[Public API]
+        INT3[External Systems]
+        INT4[Webhooks]
+        INT5[Developer Portal]
+    end
+    
+    Phase7 --> Phase8
+    Phase8 --> Phase9
+    Phase9 --> Phase10
+    
+    style Phase7 fill:#FFE4B5
+    style Phase8 fill:#E0BBE4
+    style Phase9 fill:#B4E7CE
+    style Phase10 fill:#C7CEEA
+
+%% ============================================
+%% PRIORITY MATRIX
+%% ============================================
+
+quadrantChart
+    title Feature Priority Matrix
+    x-axis Low Effort --> High Effort
+    y-axis Low Impact --> High Impact
+    quadrant-1 Plan Carefully
+    quadrant-2 Do First
+    quadrant-3 Fill-ins
+    quadrant-4 Quick Wins
+    Dark Theme: [0.3, 0.7]
+    Offline Mode: [0.7, 0.8]
+    Multi-language: [0.5, 0.6]
+    Image Recognition: [0.8, 0.9]
+    Advanced Search: [0.4, 0.7]
+    Analytics Dashboard: [0.6, 0.8]
+    Multi-Campus: [0.9, 0.9]
+    Public API: [0.7, 0.7]
+    Gamification: [0.5, 0.4]
+    Email Notifications: [0.3, 0.5]

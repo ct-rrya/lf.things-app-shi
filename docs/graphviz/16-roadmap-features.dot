@@ -1,0 +1,88 @@
+// LF.things Roadmap - Feature Dependencies
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph FeatureRoadmap {
+    // Graph settings
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fontname="Arial"];
+    edge [fontname="Arial", fontsize=9];
+    
+    // Completed Core Features
+    subgraph cluster_core {
+        label="✅ Completed Features (11/15 - 73.3%)";
+        style=filled;
+        fillcolor=lightgreen;
+        
+        auth [label="Authentication\n& Registration"];
+        home [label="Home Screen"];
+        profile [label="Profile Screen"];
+        lostreport [label="Lost Item\nReporting"];
+        foundreport [label="Found Item\nReporting"];
+        listing [label="Item Listing\n& Browsing"];
+        qrgen [label="QR Code\nGeneration"];
+        qrscan [label="QR Code\nScanning"];
+        notif [label="Notification\nSystem"];
+        web [label="Web Interface\nSupport"];
+        admin [label="Admin\nDashboard"];
+    }
+    
+    // In Progress Features
+    subgraph cluster_progress {
+        label="⏳ In Progress (4/15 - 26.7%)";
+        style=filled;
+        fillcolor=gold;
+        
+        aimatching [label="AI Item Matching\n(Groq API)"];
+        tc [label="Terms &\nConditions"];
+        naming [label="Naming\nCorrections"];
+        testing [label="Full E2E\nTesting"];
+    }
+    
+    // Phase 7: Enhanced UX
+    subgraph cluster_phase7 {
+        label="Phase 7: Post-Launch Enhancements";
+        style=filled;
+        fillcolor=lightblue;
+        
+        offline [label="Offline Mode"];
+        darkmode [label="Dark Theme"];
+        multilang [label="Multi-language"];
+        search [label="Advanced Search"];
+    }
+    
+    // Phase 8: AI Evolution
+    subgraph cluster_phase8 {
+        label="Phase 8: AI Evolution (Future)";
+        style=filled;
+        fillcolor=lightcyan;
+        
+        imagerecog [label="Image\nRecognition"];
+        mltraining [label="ML Model\nTraining"];
+        visualmatch [label="Visual\nMatching"];
+    }
+    
+    // Dependencies - Core features
+    auth -> home;
+    auth -> profile;
+    home -> lostreport;
+    home -> foundreport;
+    lostreport -> listing;
+    foundreport -> listing;
+    qrgen -> qrscan;
+    listing -> notif;
+    auth -> admin;
+    home -> web;
+    
+    // Dependencies - To In Progress
+    lostreport -> aimatching;
+    foundreport -> aimatching;
+    listing -> aimatching;
+    auth -> tc;
+    admin -> testing;
+    aimatching -> testing;
+    
+    // Dependencies - In Progress to Future
+    aimatching -> imagerecog;
+    aimatching -> mltraining;
+    testing -> offline;
+}

@@ -1,0 +1,148 @@
+// LF.things - General Application Workflow
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph GeneralWorkflow {
+    // Graph settings
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=9];
+    
+    // Start
+    start [label="User Opens\nLF.things App", shape=ellipse, fillcolor=lightgreen, fontsize=11];
+    
+    // Authentication
+    auth [label="Authentication\nRequired?", shape=diamond, fillcolor=lightyellow];
+    login [label="Login/Register\nwith Student ID", fillcolor=lightblue];
+    
+    // Main Dashboard
+    home [label="Home Dashboard\n\n• View Statistics\n• Recent Activity\n• Quick Actions", fillcolor=lightcyan, fontsize=11];
+    
+    // Main User Actions
+    subgraph cluster_actions {
+        label="Main User Actions";
+        style=filled;
+        fillcolor=honeydew;
+        
+        register [label="Register Item\n\n• Add photos\n• Enter details\n• Generate QR code", fillcolor=lightblue];
+        reportLost [label="Report Item Lost\n\n• Mark as lost\n• Update status", fillcolor=lightcoral];
+        reportFound [label="Report Found Item\n\n• Upload photos\n• Enter location\n• Submit details", fillcolor=lightgreen];
+        scanQR [label="Scan QR Code\n\n• Camera scan\n• View item info\n• Contact owner", fillcolor=gold];
+        myItems [label="My Items\n\n• View all items\n• Update status\n• Download QR", fillcolor=lightblue];
+        profile [label="Profile\n\n• Edit info\n• Change avatar\n• Settings", fillcolor=lavender];
+    }
+    
+    // AI Matching System
+    aiMatch [label="AI Matching System\n(Groq API)\n\nAnalyzes descriptions,\ncategories, colors", shape=hexagon, fillcolor=lightyellow, fontsize=10];
+    
+    // Matching Results
+    matchFound [label="Potential Match\nFound!", fillcolor=lightgreen];
+    notification [label="Send Notification\nto Owner", fillcolor=gold];
+    
+    // Match Review
+    reviewMatch [label="Review Match\n\n• Compare items\n• View photos\n• Check details", fillcolor=lightcyan];
+    confirmMatch [label="Confirm Match?", shape=diamond, fillcolor=lightyellow];
+    
+    // Communication
+    chat [label="In-App Chat\n\n• Direct messaging\n• Coordinate return\n• Real-time updates", fillcolor=lightgreen];
+    
+    // Item Return Process
+    arrange [label="Arrange Return\n\n• Meet directly\n• Via SSG Office", fillcolor=lightblue];
+    
+    // SSG Office Path
+    ssgOffice [label="SSG Office\nCustody\n\n• Check-in item\n• Track custody\n• Admin logging", fillcolor=lavender];
+    
+    // Admin Dashboard
+    subgraph cluster_admin {
+        label="Admin Functions";
+        style=filled;
+        fillcolor=mistyrose;
+        
+        adminDash [label="Admin Dashboard\n\n• System stats\n• User management\n• Item oversight", fillcolor=lightcoral];
+        studentMgmt [label="Student\nManagement", fillcolor=lightcoral];
+        custodyLog [label="Custody Log\nTracking", fillcolor=lightcoral];
+        auditLog [label="Audit Log\nMonitoring", fillcolor=lightcoral];
+    }
+    
+    // Success/End States
+    itemReturned [label="Item Successfully\nReturned! 🎉", shape=ellipse, fillcolor=lightgreen, fontsize=11];
+    itemSafe [label="Item Remains\nSafe", shape=ellipse, fillcolor=lightblue];
+    
+    // Main Flow
+    start -> auth;
+    auth -> login [label="No"];
+    auth -> home [label="Yes"];
+    login -> home;
+    
+    // Home to Actions
+    home -> register [label="Register\nNew Item"];
+    home -> reportLost [label="I Lost\nSomething"];
+    home -> reportFound [label="I Found\nSomething"];
+    home -> scanQR [label="Scan QR\nCode"];
+    home -> myItems [label="My Items"];
+    home -> profile [label="Profile"];
+    
+    // Register Item Flow
+    register -> itemSafe [label="Item registered\nwith QR code"];
+    itemSafe -> reportLost [label="Later, if lost", style=dashed];
+    
+    // Report Lost Flow
+    reportLost -> aiMatch [label="Auto-trigger\nAI matching"];
+    
+    // Report Found Flow
+    reportFound -> aiMatch [label="Auto-trigger\nAI matching"];
+    
+    // AI Matching Flow
+    aiMatch -> matchFound [label="Match score\n≥ 70%"];
+    aiMatch -> home [label="No match\nfound", style=dashed];
+    
+    matchFound -> notification;
+    notification -> reviewMatch;
+    
+    // Match Review Flow
+    reviewMatch -> confirmMatch;
+    confirmMatch -> chat [label="Confirm"];
+    confirmMatch -> home [label="Reject", style=dashed];
+    
+    // Communication & Return
+    chat -> arrange;
+    arrange -> itemReturned [label="Direct\nhandover"];
+    arrange -> ssgOffice [label="Via SSG\nOffice"];
+    ssgOffice -> custodyLog;
+    custodyLog -> itemReturned;
+    
+    // QR Scan Flow
+    scanQR -> reportFound [label="Found this\nitem", style=dashed];
+    scanQR -> chat [label="Contact\nowner", style=dashed];
+    
+    // Admin Access
+    home -> adminDash [label="Admin\nonly", color=red, style=dashed];
+    adminDash -> studentMgmt;
+    adminDash -> custodyLog;
+    adminDash -> auditLog;
+    
+    // Notifications
+    subgraph cluster_notifications {
+        label="Notification System";
+        style=dashed;
+        fillcolor=lightyellow;
+        
+        notif1 [label="Match Found", shape=note, fillcolor=white];
+        notif2 [label="New Message", shape=note, fillcolor=white];
+        notif3 [label="Status Update", shape=note, fillcolor=white];
+    }
+    
+    matchFound -> notif1 [style=dotted, color=gray];
+    chat -> notif2 [style=dotted, color=gray];
+    reportLost -> notif3 [style=dotted, color=gray];
+    
+    // Legend
+    subgraph cluster_legend {
+        label="Legend";
+        style=dashed;
+        
+        leg1 [label="User Action", fillcolor=lightblue];
+        leg2 [label="System Process", fillcolor=lightyellow];
+        leg3 [label="Success State", fillcolor=lightgreen];
+        leg4 [label="Admin Function", fillcolor=lightcoral];
+    }
+}

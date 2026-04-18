@@ -1,0 +1,69 @@
+// LF.things Development Roadmap - Timeline View
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph Roadmap {
+    // Graph settings
+    rankdir=LR;
+    node [shape=box, style="rounded,filled", fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=9];
+    
+    // Legend
+    subgraph cluster_legend {
+        label="Legend";
+        style=dashed;
+        completed [label="Completed (73.3%)", fillcolor=lightgreen];
+        active [label="In Progress (26.7%)", fillcolor=gold];
+        planned [label="Planned", fillcolor=lightblue];
+    }
+    
+    // Key Challenges
+    subgraph cluster_challenges {
+        label="Key Challenges Overcome";
+        style=filled;
+        fillcolor=mistyrose;
+        
+        c1 [label="Day 2-3:\nProject Pivot", shape=note, fillcolor=lightyellow];
+        c2 [label="Day 10:\nAI Bug Cascade", shape=note, fillcolor=lightcoral];
+        c3 [label="Day 19:\nModel Switch to Groq", shape=note, fillcolor=lightyellow];
+    }
+    
+    week1 -> c1 [style=dotted, color=gray];
+    week4 -> c2 [style=dotted, color=gray];
+    week7 -> c3 [style=dotted, color=gray];
+    
+    // Completed Phases (20 Days / 7 Weeks)
+    subgraph cluster_completed {
+        label="Completed Development\n(20 Days / 7 Weeks Active Development)";
+        style=filled;
+        fillcolor=honeydew;
+        
+        week1 [label="Week 1 (Days 1-3)\nPlanning & Pivot\n\n• Event Attendance (abandoned)\n• Lost & Found selected\n• AI + QR features scoped\n• Supabase + VS Code", fillcolor=lightgreen];
+        week2 [label="Week 2 (Days 4-6)\nUI Design & Dev\n\n• UI/UX design\n• Wireframes\n• Frontend development\n• Backend integration", fillcolor=lightgreen];
+        week3 [label="Week 3 (Days 7-9)\nCore Features\n\n• Auth & Registration\n• Home & Profile screens\n• Web interface support\n• Admin panel scoped", fillcolor=lightgreen];
+        week4 [label="Week 4 (Days 10-12)\nCritical Sprint\n\n• Notifications system\n• AI matching (bug crisis)\n• QR code generation\n• Code isolation", fillcolor=lightgreen];
+        week5 [label="Week 5 (Days 13-15)\nTesting & Review\n\n• Full codebase cleanup\n• Systematic testing\n• Faculty review\n• T&C requirement", fillcolor=lightgreen];
+        week6 [label="Week 6 (Day 16)\nDebugging\n\n• Minor bug fixes\n• Code quality pass\n• Stability improvements", fillcolor=lightgreen];
+        week7 [label="Week 7 (Days 17-20)\nAI Model Switch\n\n• AI matching resumed\n• Groq API integration\n• T&C screen started\n• Midterm prep", fillcolor=lightgreen];
+    }
+    
+    // Current Status
+    current [label="Current Status\n(Apr 13, 2026)\n\n11/15 Features Complete\n4 In Progress\n73.3% Complete", shape=ellipse, fillcolor=gold, fontsize=11];
+    
+    // Future Phases
+    subgraph cluster_future {
+        label="Future Enhancements";
+        style=filled;
+        fillcolor=aliceblue;
+        
+        phase7 [label="Phase 7\n(Q2-Q3 2026)\n\nEnhanced UX\n• Offline Mode\n• Dark Theme\n• Multi-language\n• Advanced Search", fillcolor=gold];
+        phase8 [label="Phase 8\n(Q4 2026)\n\nAnalytics\n• Recovery Stats\n• Trend Analysis\n• Custom Reports\n• Visual Charts", fillcolor=lightblue];
+        phase9[label="Phase 11\n(2027 H2)\n\nAdvanced Admin\n• Bulk Operations\n• Role Management\n• Moderation Tools\n• Auto Archival", fillcolor=lightblue];
+    }
+    
+    // Flow
+    week1 -> week2 -> week3 -> week4 -> week5 -> week6 -> week7;
+    week7 -> current;
+    current -> phase7 [label="Post-Midterms", style=bold, color=darkgreen];
+    phase7 -> phase8;
+    phase8 -> phase9;
+}

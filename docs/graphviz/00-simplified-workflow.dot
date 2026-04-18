@@ -1,0 +1,80 @@
+// LF.things - Simplified Application Workflow
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph SimplifiedWorkflow {
+    // Graph settings
+    rankdir=LR;
+    node [shape=box, style="rounded,filled", fontname="Arial", fontsize=11];
+    edge [fontname="Arial", fontsize=10];
+    
+    // Main Stages
+    subgraph cluster_stage1 {
+        label="Stage 1: Registration";
+        style=filled;
+        fillcolor=lightblue;
+        
+        s1 [label="User Registers Item\n\n1. Upload photos\n2. Enter details\n3. Get QR code sticker", fillcolor=white];
+    }
+    
+    subgraph cluster_stage2 {
+        label="Stage 2: Item Lost";
+        style=filled;
+        fillcolor=lightcoral;
+        
+        s2 [label="User Reports Lost\n\n1. Mark item as lost\n2. System activates\n3. AI starts matching", fillcolor=white];
+    }
+    
+    subgraph cluster_stage3 {
+        label="Stage 3: Item Found";
+        style=filled;
+        fillcolor=lightgreen;
+        
+        s3a [label="Finder Scans QR\n\nOR", fillcolor=white];
+        s3b [label="Finder Reports Found\n\n1. Upload photos\n2. Enter location\n3. Submit to system", fillcolor=white];
+    }
+    
+    subgraph cluster_stage4 {
+        label="Stage 4: AI Matching";
+        style=filled;
+        fillcolor=gold;
+        
+        s4 [label="AI Matches Items\n\n1. Analyze descriptions\n2. Compare photos\n3. Calculate confidence\n4. Notify if match ≥70%", fillcolor=white];
+    }
+    
+    subgraph cluster_stage5 {
+        label="Stage 5: Communication";
+        style=filled;
+        fillcolor=lavender;
+        
+        s5 [label="Owner & Finder Chat\n\n1. Review match\n2. Confirm identity\n3. Arrange return", fillcolor=white];
+    }
+    
+    subgraph cluster_stage6 {
+        label="Stage 6: Return";
+        style=filled;
+        fillcolor=lightgreen;
+        
+        s6a [label="Direct Handover", fillcolor=white];
+        s6b [label="Via SSG Office\n(with custody log)", fillcolor=white];
+    }
+    
+    // Flow
+    s1 -> s2 [label="Item gets lost"];
+    s2 -> s4 [label="Auto-trigger"];
+    
+    s3a -> s4 [label="QR scan\nidentifies owner"];
+    s3b -> s4 [label="AI matching\nactivated"];
+    
+    s4 -> s5 [label="Match found\n(notification sent)"];
+    
+    s5 -> s6a [label="Agree to\nmeet"];
+    s5 -> s6b [label="Use SSG\nOffice"];
+    
+    // Alternative paths
+    s3a -> s5 [label="Direct contact", style=dashed, color=blue];
+    
+    // Success
+    success [label="Item Returned\nSuccessfully! 🎉", shape=ellipse, fillcolor=lightgreen, fontsize=13];
+    s6a -> success;
+    s6b -> success;
+}

@@ -1,0 +1,86 @@
+// LF.things Roadmap - Major Milestones
+// View at: https://dreampuf.github.io/GraphvizOnline/
+
+digraph Milestones {
+    // Graph settings
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fontname="Arial", fontsize=11];
+    edge [fontname="Arial", fontsize=10, penwidth=2];
+    
+    // Start
+    start [label="Project Start\nDay 1\nEvent Attendance Concept", shape=ellipse, fillcolor=lightyellow, fontsize=12];
+    
+    pivot [label="Critical Pivot\nDay 2-3\nLost & Found Selected", shape=diamond, fillcolor=orange, fontsize=11];
+    
+    // Major Milestones
+    m1 [label="Milestone 1\nUI Foundation\nDays 4-6\n\n✓ UI/UX Design\n✓ Wireframes\n✓ Frontend Dev\n✓ Backend Integration", fillcolor=lightgreen];
+    
+    m2 [label="Milestone 2\nCore Features\nDays 7-9\n\n✓ Authentication\n✓ Home & Profile\n✓ Web Interface\n✓ Admin Scoped", fillcolor=lightgreen];
+    
+    m3 [label="Milestone 3\nCritical Sprint\nDays 10-12\n\n✓ Notifications\n✓ QR Code System\n⚠ AI Bug Crisis\n✓ Code Isolation", fillcolor=lightgreen];
+    
+    m4 [label="Milestone 4\nQA & Review\nDays 13-15\n\n✓ Full Testing\n✓ Bug Fixes\n✓ Faculty Review\n✓ T&C Required", fillcolor=lightgreen];
+    
+    m5 [label="Milestone 5\nStability Pass\nDay 16\n\n✓ Debugging\n✓ Code Quality\n✓ Minor Fixes", fillcolor=lightgreen];
+    
+    m6 [label="Milestone 6\nAI Model Switch\nDays 17-20\n\n✓ AI Resumed\n✓ Groq API\n⏳ T&C Started\n⏳ Naming Fixes", fillcolor=gold];
+    
+    current [label="Current\nDay 20 (Apr 13)\n\n📊 73.3% Complete\n✓ 11/15 Features\n⏳ 4 In Progress", shape=ellipse, fillcolor=gold, fontsize=12];
+    
+    // Future Milestones
+    m7 [label="Milestone 7\nCompletion Sprint\nPost-Midterms\n\n□ AI Matching Complete\n□ T&C Finalized\n□ Naming Corrections\n□ Full Testing", fillcolor=lightyellow];
+    
+    m8 [label="Milestone 8\nProduction Ready\nLate April 2026\n\n□ All 15 Features Done\n□ Faculty Approval\n□ Deployment Prep", fillcolor=lightblue];
+    
+    m9 [label="Milestone 9\nCampus Launch\nMay 2026\n\n□ Live Deployment\n□ User Onboarding\n□ SSG Training", fillcolor=lightblue];
+    
+    m10 [label="Milestone 10\nEnhancements\nQ3 2026\n\n□ Offline Mode\n□ Dark Theme\n□ Multi-language", fillcolor=lightcyan];
+    
+    future [label="Future Vision\n2027+\n\n🚀 Campus-wide Adoption\n🌐 Multi-campus Network\n🤖 Advanced AI", shape=ellipse, fillcolor=lavender, fontsize=12];
+    
+    // Flow
+    start -> pivot [label="Day 1-2", color=red, penwidth=2];
+    pivot -> m1 [label="Pivot Decision", color=darkgreen, penwidth=2];
+    m1 -> m2 [label="Week 2→3"];
+    m2 -> m3 [label="Week 3→4"];
+    m3 -> m4 [label="Week 4→5", color=orange, label="Recovery"];
+    m4 -> m5 [label="Week 5→6"];
+    m5 -> m6 [label="Week 6→7"];
+    m6 -> current [label="Day 20", color=darkgreen, penwidth=3];
+    
+    current -> m7 [label="Post-Midterms", style=dashed];
+    m7 -> m8;
+    m8 -> m9;
+    m9 -> m10;
+    m10 -> future [label="Long-term", style=dashed];
+    
+    // Success Metrics
+    subgraph cluster_metrics {
+        label="Current Progress (Day 20)";
+        style=filled;
+        fillcolor=mistyrose;
+        
+        metric1 [label="11/15 Features\nCompleted", shape=note, fillcolor=lightgreen];
+        metric2 [label="4 Features\nIn Progress", shape=note, fillcolor=gold];
+        metric3 [label="73.3%\nCompletion Rate", shape=note, fillcolor=lightblue];
+    }
+    
+    current -> metric1 [style=dotted, color=gray];
+    current -> metric2 [style=dotted, color=gray];
+    current -> metric3 [style=dotted, color=gray];
+    
+    // Key Challenges
+    subgraph cluster_challenges {
+        label="Key Challenges";
+        style=filled;
+        fillcolor=lavenderblush;
+        
+        ch1 [label="Day 2: Integrity\nFlaw Identified", shape=note, fillcolor=lightyellow];
+        ch2 [label="Day 10: AI Bug\nCascade", shape=note, fillcolor=lightcoral];
+        ch3 [label="Day 19: Model\nSwitch to Groq", shape=note, fillcolor=lightyellow];
+    }
+    
+    pivot -> ch1 [style=dotted, color=red];
+    m3 -> ch2 [style=dotted, color=red];
+    m6 -> ch3 [style=dotted, color=orange];
+}
