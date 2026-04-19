@@ -44,13 +44,18 @@ export default function AdminAudit() {
     }
   }
 
-  const filtered = log.filter(entry =>
-    entry.action?.toLowerCase().includes(search.toLowerCase()) ||
-    entry.target_type?.toLowerCase().includes(search.toLowerCase()) ||
-    entry.target_id?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = log.filter(entry => {
+    if (!entry) return false;
+    const searchLower = search.toLowerCase();
+    return (
+      (entry.action || '').toLowerCase().includes(searchLower) ||
+      (entry.target_type || '').toLowerCase().includes(searchLower) ||
+      (entry.target_id || '').toLowerCase().includes(searchLower)
+    );
+  });
 
   function getActionColor(action) {
+    if (!action) return '#5B8CFF'; // Default color if action is undefined
     if (action.includes('deleted') || action.includes('disposed')) return '#E53935';
     if (action.includes('added') || action.includes('received')) return '#43A047';
     if (action.includes('updated') || action.includes('changed')) return '#FB8C00';
@@ -168,25 +173,29 @@ export default function AdminAudit() {
             </View>
           ) : filtered.map((entry) => (
             <TouchableOpacity
-              key={entry.id}
+              key={entry?.id || Math.random()}
               style={styles.tableRow}
               onPress={() => setSelectedEntry(entry)}
               activeOpacity={0.7}
             >
               <View style={[styles.cell, { flex: 2.5, flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
-                <View style={[styles.actionDot, { backgroundColor: getActionColor(entry.action) }]} />
-                <Text style={styles.actionCell} numberOfLines={1}>{entry.action}</Text>
+                <View style={[styles.actionDot, { backgroundColor: getActionColor(entry?.action) }]} />
+                <Text style={styles.actionCell} numberOfLines={1}>{entry?.action || '—'}</Text>
               </View>
               <View style={styles.cell}>
                 <View style={styles.typeBadge}>
-                  <Text style={styles.typeBadgeText}>{entry.target_type || '—'}</Text>
+                  <Text style={styles.typeBadgeText}>{entry?.target_type || '—'}</Text>
                 </View>
               </View>
-              <Text style={[styles.cell, styles.idCell]} numberOfLines={1}>{entry.target_id?.substring(0, 8) || '—'}</Text>
+              <Text style={[styles.cell, styles.idCell]} numberOfLines={1}>{entry?.target_id?.substring(0, 8) || '—'}</Text>
               <Text style={[styles.cell, styles.dateCell]}>
-                {new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                {' '}
-                {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                {entry?.created_at ? (
+                  <>
+                    {new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {' '}
+                    {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                  </>
+                ) : '—'}
               </Text>
               <View style={styles.cell}>
                 <Ionicons name="chevron-forward" size={14} color="#B8AFA4" />
@@ -202,12 +211,12 @@ export default function AdminAudit() {
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderLeft}>
-                <View style={[styles.modalIconWrap, { backgroundColor: getActionColor(selectedEntry?.action) + '20' }]}>
-                  <Ionicons name="document-text" size={18} color={getActionColor(selectedEntry?.action)} />
+                <View style={[styles.modalIconWrap, { backgroundColor: (getActionColor(selectedEntry?.action) || '#5B8CFF') + '20' }]}>
+                  <Ionicons name="document-text" size={18} color={getActionColor(selectedEntry?.action) || '#5B8CFF'} />
                 </View>
                 <View>
                   <Text style={styles.modalTitle}>Audit Entry</Text>
-                  <Text style={styles.modalSub}>{selectedEntry?.action}</Text>
+                  <Text style={styles.modalSub}>{selectedEntry?.action || 'No action'}</Text>
                 </View>
               </View>
               <TouchableOpacity onPress={() => setSelectedEntry(null)} style={styles.closeBtn}>
@@ -293,17 +302,65 @@ const styles = StyleSheet.create({
   filterChipTextActive: { color: '#FFFFFF' },
 
   tableWrap: { flex: 1, paddingHorizontal: 28 },
-  table: { backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 1, borderColor: '#E8E0D0', overflow: 'hidden', marginBottom: 24 },
-  tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#F5F0E8' },
-  tableHead: { backgroundColor: '#F5F0E8', borderBottomColor: '#E8E0D0' },
+  table: { 
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 16, 
+    borderWidth: 1, 
+    borderColor: '#E8E0D0', 
+    overflow: 'hidden', 
+    marginBottom: 24,
+    shadowColor: '#1A1611',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  tableRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingVertical: 14, 
+    paddingHorizontal: 20, 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#F5F0E8',
+    transition: 'background-color 0.2s',
+  },
+  tableHead: { 
+    backgroundColor: '#FAF8F3', 
+    borderBottomWidth: 2,
+    borderBottomColor: '#E8E0D0',
+    paddingVertical: 12,
+  },
   cell: { flex: 1, fontSize: 13 },
-  headCell: { fontSize: 10, fontWeight: '700', color: '#8A8070', letterSpacing: 0.8, textTransform: 'uppercase' },
-  actionDot: { width: 6, height: 6, borderRadius: 3, flexShrink: 0 },
-  actionCell: { fontWeight: '600', color: '#1A1611', flex: 1 },
-  typeBadge: { alignSelf: 'flex-start', backgroundColor: '#F5F0E8', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  typeBadgeText: { fontSize: 11, fontWeight: '700', color: '#8A8070' },
-  idCell: { color: '#8A8070', fontSize: 11, fontFamily: 'monospace' },
-  dateCell: { color: '#8A8070', fontSize: 11 },
+  headCell: { 
+    fontSize: 10, 
+    fontWeight: '800', 
+    color: '#5A5248', 
+    letterSpacing: 1, 
+    textTransform: 'uppercase' 
+  },
+  actionDot: { 
+    width: 8, 
+    height: 8, 
+    borderRadius: 4, 
+    flexShrink: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  actionCell: { fontWeight: '600', color: '#1A1611', flex: 1, fontSize: 14 },
+  typeBadge: { 
+    alignSelf: 'flex-start', 
+    backgroundColor: '#F5C842', 
+    paddingHorizontal: 10, 
+    paddingVertical: 4, 
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8B830',
+  },
+  typeBadgeText: { fontSize: 11, fontWeight: '700', color: '#1A1611', letterSpacing: 0.3 },
+  idCell: { color: '#8A8070', fontSize: 11, fontFamily: 'monospace', letterSpacing: 0.5 },
+  dateCell: { color: '#5A5248', fontSize: 12, fontWeight: '500' },
   emptyRow: { padding: 32, alignItems: 'center', gap: 8 },
   emptyText: { color: '#8A8070', fontSize: 13 },
   

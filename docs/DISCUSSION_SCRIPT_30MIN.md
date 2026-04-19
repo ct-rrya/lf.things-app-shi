@@ -15,9 +15,9 @@
 | 2:00-6:00 | What the App is About | 4 min | Member 2 |
 | 6:00-10:00 | Technologies Used (AI with Groq) | 4 min | Member 3 |
 | 10:00-14:00 | Two Interfaces & Ecosystem | 4 min | Member 4 |
-| 14:00-18:00 | Flowcharts & Important Features | 4 min | Member 5 |
-| 18:00-22:00 | Live Demonstration | 4 min | Member 6 |
-| 22:00-26:00 | Recorded Demo Highlights | 4 min | Member 7 |
+| 14:00-18:00 | Project Structure & Architecture | 4 min | Member 7 |
+| 18:00-22:00 | Flowcharts & Important Features | 4 min | Member 5 |
+| 22:00-26:00 | Live Demonstration | 4 min | Member 6 |
 | 26:00-30:00 | Q&A & Closing | 4 min | All |
 
 ---
@@ -150,11 +150,68 @@ Student loses item → Finder reports → AI matches → SSG manages → Chat co
 ```
 
 **Visual Aid:** Show side-by-side comparison of interfaces
-**Transition:** "Let's visualize these workflows with [Member 5]."
+**Transition:** "Now let's look at how we organized the codebase with [Member 7]."
 
 ---
 
-### **14:00-18:00 - Flowcharts & Important Features** (Member 5)
+### **14:00-18:00 - Project Structure & Architecture** (Member 7)
+
+**Code Organization Overview:**
+
+"Now let me walk you through how we organized this project to make it maintainable and scalable."
+
+**1. Main Folders** (1 minute)
+
+**Visual Aid:** Show folder tree diagram
+
+"Our project is organized into four main areas:
+
+- **app/** - All the screens users see (home, register, chat, admin panel)
+- **lib/** - The brain of our app (AI matching, database connections, utilities)
+- **components/** - Reusable UI pieces
+- **docs/** - All our documentation and flowcharts"
+
+**2. App Folder Structure** (1.5 minutes)
+
+"The app folder uses Expo Router's file-based routing - meaning the folder structure IS the navigation:
+
+- **(tabs)/** - The 5 main tabs: Home, Register, My Items, Notifications, Profile
+- **admin/** - Complete admin panel with 7 different management screens
+- **chat/[thread_id].js** - Dynamic chat conversations
+- **found/[id]/** - Found item details and match review
+- **scan/[token].js** - QR code scan results"
+
+**Visual Aid:** Show app folder tree with color coding
+
+**3. Core Business Logic** (1 minute)
+
+"The lib folder contains our core functionality:
+
+- **supabase.js** - Database connection for regular users
+- **supabaseAdmin.js** - Admin database connection with elevated permissions
+- **aiMatching.js** - The AI matching algorithm using Google Gemini
+- **auditLog.js** - Tracks all admin actions for accountability
+- **categoryForms.js** - Dynamic form fields based on item type"
+
+**4. Why This Structure Matters** (0.5 minutes)
+
+"This organization gives us:
+1. **Separation of concerns** - UI separate from business logic
+2. **Easy navigation** - File structure matches app navigation
+3. **Maintainability** - Easy to find and update code
+4. **Scalability** - Simple to add new features without breaking existing ones"
+
+**Key Takeaways:**
+1. Clean folder structure = easier development
+2. File-based routing makes navigation intuitive
+3. Separation of UI and logic improves code quality
+4. Well-documented and organized for future developers
+
+**Transition:** "Now let's visualize these workflows with [Member 5]."
+
+---
+
+### **18:00-22:00 - Flowcharts & Important Features** (Member 5)
 
 **Key Flowcharts to Show:**
 
@@ -197,7 +254,7 @@ Student → Register Item → QR Code → If Lost → Finder Scans/Reports → A
 
 ---
 
-### **18:00-22:00 - Live Demonstration** (Member 6)
+### **22:00-26:00 - Live Demonstration** (Member 6)
 
 **Demo Setup:**
 "Let me show you how this works in real-time. I have the app installed on my phone and we'll go through the complete user journey."
@@ -240,48 +297,6 @@ Student → Register Item → QR Code → If Lost → Finder Scans/Reports → A
 
 **Demo Summary:**
 "In under 4 minutes, we've shown how an item goes from lost to matched to chat-ready. In real life, this could save someone's semester!"
-
-**Transition:** "Let's see some more complex scenarios in our recorded demos with [Member 7]."
-
----
-
-### **22:00-26:00 - Recorded Demo Highlights** (Member 7)
-
-**Pre-recorded Scenarios:**
-
-**Scenario 1: No QR Code, AI to the Rescue** (1.5 minutes)
-- Student loses backpack without QR
-- Reports with detailed description
-- Finder finds similar backpack
-- Reports with photos
-- AI matches at 85% confidence
-- Chat initiates return
-
-**Scenario 2: SSG Office Workflow** (1.5 minutes)
-- Finder brings item to SSG office
-- Officer logs into custody system
-- Scans item or manually enters
-- Assigns shelf location A-12
-- Takes custody photo
-- System notifies owner
-- Owner comes to claim
-- Officer verifies identity
-- Logs return in system
-
-**Scenario 3: Admin Management** (1 minute)
-- SSG officer reviews dashboard
-- Checks recent activity
-- Views audit logs
-- Generates monthly report
-- Updates student master list
-- Manages user accounts
-
-**Key Takeaways from Demos:**
-1. System works with or without QR codes
-2. AI handles complex matching scenarios
-3. SSG workflow is streamlined
-4. Admin controls are comprehensive
-5. Entire process is trackable and auditable
 
 **Transition:** "Now let's open the floor for your questions."
 

@@ -115,3 +115,38 @@ CREATE TRIGGER update_items_updated_at
   BEFORE UPDATE ON items
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+-- Scan Events table (tracks finder actions when scanning QR codes)
+CREATE TABLE IF NOT EXISTS scan_events (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  item_id UUID REFERENCES items(id) ON DELETE CASCADE NOT NULL,
+  action TEXT NOT NULL CHECK (action IN ('turn_in', 'have_it')),
+  finder_name TEXT,
+  finder_phone TEXT,
+  finder_contact TEXT, -- Facebook, Instagram, etc.
+  finder_email TEXT,
+  location_note TEXT,
+  finder_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS for scan_events (anyone can insert, owners can view)
+ALTER TABLE scan_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can insert scan events"
+  ON scan_events FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Item owners can view scan events for their items"
+  ON scan_events FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM items
+      WHERE items.id = scan_events.item_id
+      AND items.user_id = auth.uid()
+    )
+  );
+
+-- Index for performance
+CREATE INDEX idx_scan_events_item_id ON scan_events(item_id);
+CREATE INDEX idx_scan_events_created_at ON scan_events(created_at DESC);
