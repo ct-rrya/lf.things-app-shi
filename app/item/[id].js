@@ -61,6 +61,7 @@ function getCategoryIcon(category) {
 export default function ItemDetail() {
   const { id } = useLocalSearchParams();
   const [item, setItem] = useState(null);
+  const [scanEvents, setScanEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const qrRef = useRef();
   const router = useRouter();
@@ -68,6 +69,7 @@ export default function ItemDetail() {
 
   useEffect(() => {
     fetchItem();
+    fetchScanEvents();
   }, [id]);
 
   // ── LOGIC (unchanged) ──────────────────────────────────────────
@@ -85,6 +87,21 @@ export default function ItemDetail() {
       router.back();
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchScanEvents() {
+    try {
+      const { data, error } = await supabase
+        .from('scan_events')
+        .select('*')
+        .eq('item_id', id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setScanEvents(data || []);
+    } catch (error) {
+      console.error('Error fetching scan events:', error);
     }
   }
 
@@ -309,6 +326,103 @@ export default function ItemDetail() {
                 </View>
               </View>
             </View>
+
+            {/* Scan Events Card - Show if item was found */}
+            {scanEvents.length > 0 && (
+              <View style={styles.card}>
+                <Text style={[styles.sectionHeading, { fontSize: r.isTablet ? 11 : 10 }]}>
+                  FOUND ACTIVITY
+                </Text>
+                {scanEvents.map((event, index) => (
+                  <View key={event.id}>
+                    {index > 0 && <View style={styles.cardDivider} />}
+                    <View style={styles.scanEventItem}>
+                      <View style={styles.scanEventHeader}>
+                        <View style={[
+                          styles.scanEventIcon,
+                          event.action === 'turn_in' 
+                            ? { backgroundColor: 'rgba(16,185,129,0.1)' }
+                            : { backgroundColor: 'rgba(69,53,75,0.1)' }
+                        ]}>
+                          <Ionicons 
+                            name={event.action === 'turn_in' ? 'business' : 'hand-right'} 
+                            size={16} 
+                            color={event.action === 'turn_in' ? '#10b981' : colors.grape} 
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.scanEventTitle}>
+                            {event.action === 'turn_in' 
+                              ? '🎉 Turned in to SSG Office' 
+                              : '📱 Finder has your item'}
+                          </Text>
+                          <Text style={styles.scanEventTime}>
+                            {new Date(event.created_at).toLocaleString()}
+                          </Text>
+                        </View>
+                      </View>
+                      
+                      <View style={styles.scanEventDetails}>
+                        <View style={styles.detailRow}>
+                          <Ionicons name="person-outline" size={13} color="rgba(69,53,75,0.4)" />
+                          <View style={styles.detailBody}>
+                            <Text style={styles.label}>FINDER</Text>
+                            <Text style={[styles.value, { fontSize: r.isTablet ? 13 : 12 }]}>
+                              {event.finder_name || 'Anonymous'}
+                            </Text>
+                          </View>
+                        </View>
+                        
+                        {event.finder_phone && (
+                          <View style={styles.detailRow}>
+                            <Ionicons name="call-outline" size={13} color="rgba(69,53,75,0.4)" />
+                            <View style={styles.detailBody}>
+                              <Text style={styles.label}>PHONE</Text>
+                              <Text style={[styles.value, { fontSize: r.isTablet ? 13 : 12 }]}>
+                                {event.finder_phone}
+                              </Text>
+                            </View>
+                          </View>
+                        )}
+                        
+                        {event.finder_contact && (
+                          <View style={styles.detailRow}>
+                            <Ionicons name="logo-facebook" size={13} color="rgba(69,53,75,0.4)" />
+                            <View style={styles.detailBody}>
+                              <Text style={styles.label}>CONTACT</Text>
+                              <Text style={[styles.value, { fontSize: r.isTablet ? 13 : 12 }]}>
+                                {event.finder_contact}
+                              </Text>
+                            </View>
+                          </View>
+                        )}
+                        
+                        {event.location_note && (
+                          <View style={styles.detailRow}>
+                            <Ionicons name="location-outline" size={13} color="rgba(69,53,75,0.4)" />
+                            <View style={styles.detailBody}>
+                              <Text style={styles.label}>LOCATION NOTE</Text>
+                              <Text style={[styles.value, { fontSize: r.isTablet ? 13 : 12 }]}>
+                                {event.location_note}
+                              </Text>
+                            </View>
+                          </View>
+                        )}
+                      </View>
+                      
+                      {event.action === 'turn_in' && (
+                        <View style={styles.scanEventNote}>
+                          <Ionicons name="information-circle" size={14} color="#059669" />
+                          <Text style={styles.scanEventNoteText}>
+                            Pick up your item from the SSG Office during office hours
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
 
             {/* Status Update Card */}
             <View style={styles.card}>
@@ -730,6 +844,57 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     marginBottom: 10,
   },
+  
+  // ── Scan Events ──
+  scanEventItem: {
+    gap: 10,
+  },
+  scanEventHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  scanEventIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  scanEventTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.grape,
+    marginBottom: 2,
+  },
+  scanEventTime: {
+    fontSize: 10,
+    color: 'rgba(69,53,75,0.45)',
+  },
+  scanEventDetails: {
+    gap: 8,
+    paddingLeft: 46,
+  },
+  scanEventNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(5,150,105,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(5,150,105,0.2)',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 4,
+  },
+  scanEventNoteText: {
+    flex: 1,
+    fontSize: 11,
+    color: '#059669',
+    lineHeight: 16,
+    fontWeight: '500',
+  },
+  
   statusButtons: {
     flexDirection: 'row',
     gap: 8,
