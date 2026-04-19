@@ -50,8 +50,8 @@ Think of it as a "Lost & Found system with superpowers" for CTU Daanbantayan cam
 
 ---
 
-### 3. Google Gemini AI
-**What it is**: Google's artificial intelligence that can understand and compare text
+### 3. Groq API
+**What it is**: Groq's artificial intelligence that can understand and compare text
 
 **Why we chose it**:
 - Smart matching between lost and found items
@@ -267,6 +267,413 @@ AI Match Score: 88% ✓
 
 ---
 
+## � Complete Folder & File Structure
+
+### Root Directory Overview
+
+```
+lf-app/
+├── 📱 app/                    # All application screens
+├── 🧩 components/             # Reusable UI components
+├── 🛠️ lib/                    # Core business logic & utilities
+├── 🎨 styles/                 # Design system & theming
+├── 📚 docs/                   # Documentation files
+├── 🤖 android/                # Android native code
+├── ⚙️ .expo/                  # Expo configuration
+├── 🔧 .vscode/                # VS Code settings
+├── 📦 node_modules/           # Dependencies (auto-generated)
+└── 📄 Configuration files     # Root config files
+```
+
+---
+
+### 📱 app/ - Application Screens
+
+**Purpose**: Contains all the screens and pages of the mobile app using Expo Router's file-based routing.
+
+#### Root Level Files
+```
+app/
+├── _layout.js              # Root layout with auth provider & navigation setup
+├── index.js                # Landing page / Login & Signup screen
+├── auth.js                 # Alternative authentication screen
+├── qr-scanner.js           # QR code scanner screen
+└── account-settings.js     # User profile edit screen
+```
+
+**File Purposes**:
+- `_layout.js`: Sets up authentication context, checks if user is logged in, handles navigation structure
+- `index.js`: First screen users see, handles sign in/sign up with student ID verification
+- `auth.js`: Alternative auth screen (backup/testing)
+- `qr-scanner.js`: Opens camera to scan QR codes on items
+- `account-settings.js`: Edit display name, bio, change avatar
+
+#### (tabs)/ - Main Tab Navigation
+```
+app/(tabs)/
+├── _layout.js              # Tab bar configuration & icons
+├── home.js                 # Home dashboard with stats & quick actions
+├── register.js             # Register new items with QR codes
+├── report-found.js         # Report found items
+├── my-items.js             # View user's registered items
+├── notifications.js        # Notifications feed
+├── chat.js                 # Chat threads list
+└── profile.js              # User profile view
+```
+
+**File Purposes**:
+- `_layout.js`: Configures bottom tab bar with 5 tabs (Home, Register, My Items, Notifications, Profile)
+- `home.js`: Dashboard showing personalized greeting, quick actions, statistics (lost/safe items)
+- `register.js`: Form to register items with photos, generates QR codes
+- `report-found.js`: Form to report found items, triggers AI matching
+- `my-items.js`: Lists all user's items filtered by status (safe/lost/found)
+- `notifications.js`: Shows match notifications, messages, system alerts
+- `chat.js`: Lists all active chat conversations
+- `profile.js`: Shows user profile with display name, bio, avatar, sign out button
+
+#### admin/ - Admin Panel
+```
+app/admin/
+├── _layout.js              # Admin auth check & navigation
+├── index.js                # Admin dashboard with statistics
+├── users.js                # User management (view, deactivate)
+├── students.js             # Student master list management
+├── items.js                # All items overview
+├── custody.js              # Physical custody log
+└── audit.js                # Audit log viewer
+```
+
+**File Purposes**:
+- `_layout.js`: Verifies user is admin before allowing access, redirects non-admins
+- `index.js`: Overview dashboard with system stats, recent activity
+- `users.js`: Manage all registered users, view details, deactivate accounts
+- `students.js`: Manage master list of enrolled students, add/edit/import students
+- `items.js`: View all items in system, filter by status, update items
+- `custody.js`: Log physical items in SSG office, track shelf locations, record claims
+- `audit.js`: View all admin actions, filter by user/action/date, export logs
+
+#### Dynamic Routes
+```
+app/
+├── chat/
+│   └── [thread_id].js      # Individual chat conversation
+├── found/
+│   ├── [id].js             # Found item details
+│   └── [id]/
+│       └── action.js       # Match review & confirmation
+├── item/
+│   └── [id].js             # Item details view
+└── scan/
+    └── [token].js          # QR scan result page
+```
+
+**File Purposes**:
+- `chat/[thread_id].js`: Shows messages in a specific chat, send/receive messages in real-time
+- `found/[id].js`: Displays details of a found item with photos and potential matches
+- `found/[id]/action.js`: Review match, confirm or reject, initiate chat
+- `item/[id].js`: Shows detailed view of a registered item
+- `scan/[token].js`: Displays item info after scanning QR code, shows owner contact
+
+---
+
+### 🧩 components/ - Reusable UI Components
+
+**Purpose**: Shared components used across multiple screens.
+
+```
+components/
+└── SplashScreen.js         # App loading screen with logo
+```
+
+**File Purpose**:
+- `SplashScreen.js`: Animated loading screen shown while app initializes, checks auth status
+
+**Note**: Most UI components are inline in screen files. This folder can be expanded with more reusable components like:
+- Custom buttons
+- Card components
+- Form inputs
+- Modal dialogs
+
+---
+
+### 🛠️ lib/ - Core Business Logic
+
+**Purpose**: Utility functions, API clients, and core business logic separated from UI.
+
+```
+lib/
+├── supabase.js             # Supabase client (user-level)
+├── supabaseAdmin.js        # Supabase admin client (elevated permissions)
+├── aiMatching.js           # AI matching algorithm
+├── auditLog.js             # Audit logging utilities
+├── categoryForms.js        # Dynamic form fields per category
+└── ctuConstants.js         # CTU-specific constants
+```
+
+**File Purposes**:
+
+#### `supabase.js`
+- Initializes Supabase client with anon key
+- Used for all user-facing operations
+- Respects Row Level Security (RLS) policies
+- Handles auth state persistence
+
+#### `supabaseAdmin.js`
+- Initializes Supabase client with service role key
+- Bypasses RLS for admin operations
+- **Security**: Only used in admin screens with proper auth checks
+- Used for: User management, system-wide queries, audit logs
+
+#### `aiMatching.js`
+- Main function: `matchFoundItemWithLost(foundItemId)`
+- Uses Google Gemini AI to compare items
+- Generates similarity scores (0-100)
+- Creates match records for scores ≥ 70
+- Sends notifications to potential owners
+- **Algorithm**: Compares category, color, brand, description semantically
+
+#### `auditLog.js`
+- Function: `logAuditEvent(action, details, userId)`
+- Records all admin actions with timestamp
+- Captures: User ID, action type, details, IP address
+- Used for: Accountability, security, compliance
+- **Logged actions**: User management, item updates, student changes
+
+#### `categoryForms.js`
+- Function: `getCategoryFields(category)`
+- Returns dynamic form fields based on item category
+- **Categories**: Electronics, Clothing, Accessories, Books, IDs, Keys, Bags, Others
+- Each category has specific fields (e.g., Electronics has "brand", "model", "serial number")
+
+#### `ctuConstants.js`
+- `CTU_PROGRAMS`: List of academic programs (BSIT, BSCS, BSBA, etc.)
+- `CTU_YEAR_LEVELS`: Year levels (1st Year - 4th Year)
+- `CTU_INFO`: Campus information
+- `validateStudentId(id)`: Validates student ID format (YY-NNNNN)
+
+---
+
+### 🎨 styles/ - Design System
+
+**Purpose**: Centralized styling, color palette, and design tokens.
+
+```
+styles/
+├── colors.js               # Color palette definitions
+└── theme.js                # Design system (typography, spacing, components)
+```
+
+**File Purposes**:
+
+#### `colors.js`
+```javascript
+export const colors = {
+  gold: '#F5C842',        // Primary accent
+  ember: '#E53935',       // Danger/alerts
+  success: '#10b981',     // Success states
+  grape: '#45354B',       // Dark purple
+  custard: '#DECF9D',     // Light cream
+  muted: '#8A8070',       // Secondary text
+  background: '#F5F0E8',  // Main background
+  dark: '#1A1611',        // Primary text
+};
+```
+
+#### `theme.js`
+- **Typography**: Font sizes, weights, line heights
+- **Spacing**: Consistent spacing scale (4, 8, 12, 16, 24, 32, 48, 64)
+- **Components**: Reusable component styles (buttons, cards, inputs)
+- **Shadows**: Elevation system for depth
+- **Border Radius**: Consistent corner rounding
+
+---
+
+### 📚 docs/ - Documentation
+
+**Purpose**: All project documentation, guides, and flowcharts.
+
+```
+docs/
+├── TEAM_PRESENTATION_GUIDE.md      # This file! Presentation guide
+├── COMPREHENSIVE_GUIDE.md          # Complete feature documentation
+├── CODE_DOCUMENTATION.md           # Code documentation Part 1
+├── CODE_DOCUMENTATION_PART2.md     # Code documentation Part 2
+├── CODE_DOCUMENTATION_INDEX.md     # Documentation index
+├── PRESENTATION_DEFENSE.md         # Defense preparation guide
+├── AUDIT_LOGGING.md                # Audit system documentation
+├── ADMIN_AUDIT_SUMMARY.md          # Admin audit features
+├── TESTING_CHECKLIST.md            # Testing guide
+├── IOS_INSTALLATION_GUIDE.md       # iOS setup instructions
+├── ROADMAP.md                      # Future features roadmap
+├── ROADMAP_VISUAL_GUIDE.md         # Visual roadmap
+├── roadmap-visual.mmd              # Mermaid diagram for roadmap
+├── flowcharts.md                   # Flowchart documentation
+└── graphviz/                       # Flowchart source files
+    ├── README.md                   # How to generate flowcharts
+    ├── 00-system-architecture.dot  # System architecture diagram
+    ├── 00-general-workflow.dot     # General workflow
+    ├── 00-simplified-workflow.dot  # Simplified workflow
+    ├── 01-authentication.dot       # Auth flow
+    ├── 02-item-registration.dot    # Item registration flow
+    ├── 03-qr-scanning.dot          # QR scanning flow
+    ├── 04-report-found.dot         # Report found flow
+    ├── 05-ai-matching.dot          # AI matching flow
+    ├── 06-match-review.dot         # Match review flow
+    ├── 07-chat-messaging.dot       # Chat flow
+    ├── 08-my-items.dot             # My items flow
+    ├── 09-notifications.dot        # Notifications flow
+    ├── 10-admin-dashboard.dot      # Admin dashboard flow
+    ├── 11-student-management.dot   # Student management flow
+    ├── 12-custody-log.dot          # Custody log flow
+    ├── 13-profile-settings.dot     # Profile settings flow
+    ├── 14-home-dashboard.dot       # Home dashboard flow
+    ├── 15-roadmap-timeline.dot     # Roadmap timeline
+    ├── 16-roadmap-features.dot     # Roadmap features
+    └── 17-roadmap-milestones.dot   # Roadmap milestones
+```
+
+**Documentation Purposes**:
+- **TEAM_PRESENTATION_GUIDE.md**: How to explain the project to anyone
+- **COMPREHENSIVE_GUIDE.md**: Complete feature documentation with workflows
+- **CODE_DOCUMENTATION.md**: Detailed code explanations for developers
+- **PRESENTATION_DEFENSE.md**: Thesis defense preparation
+- **Graphviz files**: Source code for generating flowchart images
+
+---
+
+### 🤖 android/ - Android Native Code
+
+**Purpose**: Android-specific native code and configuration.
+
+```
+android/
+├── app/
+│   ├── build.gradle        # App-level build configuration
+│   ├── src/
+│   │   └── main/
+│   │       ├── AndroidManifest.xml     # App permissions & config
+│   │       ├── java/com/lf/app/        # Kotlin/Java code
+│   │       │   ├── MainActivity.kt     # Main activity
+│   │       │   └── MainApplication.kt  # Application class
+│   │       └── res/                    # Resources (icons, splash)
+│   └── debug.keystore      # Debug signing key
+├── build.gradle            # Project-level build config
+├── gradle.properties       # Gradle properties
+├── settings.gradle         # Project settings
+└── gradlew                 # Gradle wrapper script
+```
+
+**Key Files**:
+- `AndroidManifest.xml`: Declares app permissions (camera, internet, storage)
+- `MainActivity.kt`: Entry point for Android app
+- `build.gradle`: Dependencies, SDK versions, build configuration
+
+---
+
+### 📄 Root Configuration Files
+
+**Purpose**: Project-wide configuration and setup files.
+
+```
+Root Directory:
+├── package.json            # Node dependencies & scripts
+├── package-lock.json       # Locked dependency versions
+├── app.json                # Expo app configuration
+├── app.config.js           # Dynamic Expo configuration
+├── eas.json                # Expo Application Services config
+├── vercel.json             # Vercel deployment config
+├── .env                    # Environment variables (SECRET!)
+├── .env.example            # Example env file (safe to share)
+├── .gitignore              # Files to ignore in git
+├── .easignore              # Files to ignore in EAS builds
+├── migration.sql           # Main database schema
+├── admin-schema.sql        # Admin tables schema
+├── supabase-schema.sql     # Complete Supabase schema
+└── fix-student-data.sql    # Data migration script
+```
+
+**File Purposes**:
+
+#### `package.json`
+- Lists all npm dependencies (React Native, Expo, Supabase, etc.)
+- Defines scripts: `npm start`, `npm run android`, `npm run ios`
+- Project metadata: name, version, description
+
+#### `app.json` & `app.config.js`
+- App name, slug, version
+- Bundle identifiers (iOS: com.lf.app, Android: com.lf.app)
+- Expo plugins and configuration
+- Splash screen and icon settings
+
+#### `eas.json`
+- Build profiles (development, preview, production)
+- Signing configuration
+- Environment variables for builds
+
+#### `vercel.json`
+- Deployment configuration for Vercel (if using web version)
+- Routing rules
+- Build settings
+
+#### `.env`
+- **CRITICAL**: Contains secret keys, NEVER commit to git!
+- `EXPO_PUBLIC_SUPABASE_URL`: Supabase project URL
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`: Public Supabase key
+- `SUPABASE_SERVICE_ROLE_KEY`: Admin key (server-side only)
+- `EXPO_PUBLIC_GEMINI_API_KEY`: Google AI API key
+
+#### `.env.example`
+- Template for `.env` file
+- Shows required variables without actual values
+- Safe to commit to git
+
+#### `migration.sql`
+- Creates all database tables
+- Sets up Row Level Security (RLS) policies
+- Creates indexes for performance
+- Defines foreign key relationships
+
+#### `admin-schema.sql`
+- Creates admin-specific tables (admins, audit_log, custody_log)
+- Sets up admin RLS policies
+- Creates admin functions
+
+#### `fix-student-data.sql`
+- Data migration script
+- Fixes student name formatting
+- Updates existing records
+
+---
+
+### 🔧 Hidden/Config Folders
+
+#### `.expo/`
+**Purpose**: Expo-specific cache and configuration
+- `devices.json`: Registered development devices
+- Build cache
+- **Note**: Auto-generated, not committed to git
+
+#### `.vscode/`
+**Purpose**: VS Code editor settings
+- `settings.json`: Editor preferences
+- `launch.json`: Debug configurations
+- `extensions.json`: Recommended extensions
+
+#### `.git/`
+**Purpose**: Git version control data
+- Commit history
+- Branches
+- Remote repository info
+- **Note**: Auto-managed by git
+
+#### `node_modules/`
+**Purpose**: Installed npm packages
+- All dependencies from `package.json`
+- **Size**: Can be 100+ MB
+- **Note**: Auto-generated by `npm install`, not committed to git
+
+---
+
 ## 🗄️ Database Structure (Simplified)
 
 Think of the database as a filing cabinet with different drawers:
@@ -396,7 +803,6 @@ Think of the database as a filing cabinet with different drawers:
 - ✅ Admin dashboard
 
 ### Phase 2: Near Future
-- 📍 Map view of where items were found
 - 🔔 Push notifications (currently in-app only)
 - 📊 Analytics dashboard for admins
 - 🏆 Gamification (badges for helpful finders)
