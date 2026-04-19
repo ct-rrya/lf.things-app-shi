@@ -118,10 +118,19 @@ export default function Notifications() {
   // ── END LOGIC ──────────────────────────────────────────────────
 
   function renderScan({ item: scan }) {
+    // Handle both qr_scans table and notifications table
+    const itemId = scan.items?.id || scan.data?.item_id;
+    const itemName = scan.items?.name || scan.data?.item_name || 'item';
+    
+    if (!itemId) {
+      console.warn('Scan notification missing item_id:', scan);
+      return null;
+    }
+    
     return (
       <TouchableOpacity
         style={[styles.card, styles.cardScan, r.listColumns === 2 && styles.cardGrid]}
-        onPress={() => router.push(`/item/${scan.items.id}`)}
+        onPress={() => router.push(`/item/${itemId}`)}
         activeOpacity={0.75}
       >
         <View style={styles.cardAccentBar} />
@@ -135,10 +144,10 @@ export default function Notifications() {
             <Text style={styles.cardTypeBadgeLabel}>QR SCAN</Text>
             <Text style={[styles.cardTitle, { fontSize: 13 * r.fontScale }]} numberOfLines={2}>
               Someone scanned your{' '}
-              <Text style={styles.cardItemName}>{scan.items?.name}</Text>
+              <Text style={styles.cardItemName}>{itemName}</Text>
             </Text>
           </View>
-          <Text style={styles.cardTime}>{formatDate(scan.scanned_at)}</Text>
+          <Text style={styles.cardTime}>{formatDate(scan.scanned_at || scan.created_at)}</Text>
         </View>
 
         <View style={styles.cardDivider} />

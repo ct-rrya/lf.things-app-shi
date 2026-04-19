@@ -1,5 +1,13 @@
--- Add missing columns to scan_events table
+-- Add ALL missing columns to scan_events table
 -- Run this in Supabase SQL Editor
+
+-- Add finder_name column if it doesn't exist
+ALTER TABLE scan_events 
+ADD COLUMN IF NOT EXISTS finder_name TEXT;
+
+-- Add finder_phone column if it doesn't exist
+ALTER TABLE scan_events 
+ADD COLUMN IF NOT EXISTS finder_phone TEXT;
 
 -- Add finder_contact column if it doesn't exist
 ALTER TABLE scan_events 
