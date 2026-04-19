@@ -5,8 +5,9 @@ import { supabaseAdmin as supabase } from '../../lib/supabaseAdmin';
 import { getActionDescription } from '../../lib/auditLog';
 
 export default function AdminAudit() {
-  const [log, setLog] = useState([]);
+  const [log, setLog] = useState([]); // Start as empty array
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null); // Track errors separately
   const [filterType, setFilterType] = useState('');
   const [search, setSearch] = useState('');
   const [selectedEntry, setSelectedEntry] = useState(null);
@@ -15,17 +16,32 @@ export default function AdminAudit() {
 
   async function fetchLog() {
     setLoading(true);
-    let query = supabase
-      .from('audit_log')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(200);
-    
-    if (filterType) query = query.eq('target_type', filterType);
-    
-    const { data } = await query;
-    setLog(data || []);
-    setLoading(false);
+    setError(null); // Clear previous errors
+    try {
+      let query = supabase
+        .from('audit_log')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      
+      if (filterType) query = query.eq('target_type', filterType);
+      
+      const { data, error: fetchError } = await query;
+      
+      if (fetchError) {
+        console.error('Error fetching audit log:', fetchError);
+        setError(fetchError.message || 'Failed to fetch audit log');
+        setLog([]);
+      } else {
+        setLog(data || []);
+      }
+    } catch (err) {
+      console.error('Exception fetching audit log:', err);
+      setError(err.message || 'Exception fetching audit log');
+      setLog([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const filtered = log.filter(entry =>
@@ -39,6 +55,48 @@ export default function AdminAudit() {
     if (action.includes('added') || action.includes('received')) return '#43A047';
     if (action.includes('updated') || action.includes('changed')) return '#FB8C00';
     return '#5B8CFF';
+  }
+
+  // Show loading state on initial load
+  if (loading && log.length === 0 && !error) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.pageHeader}>
+          <View>
+            <Text style={styles.pageTitle}>Audit Log</Text>
+            <Text style={styles.pageSub}>Loading audit log...</Text>
+          </View>
+        </View>
+        <View style={styles.loadingContainer}>
+          <Ionicons name="time-outline" size={48} color="#8A8070" />
+          <Text style={styles.loadingText}>Loading audit entries...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.pageHeader}>
+          <View>
+            <Text style={styles.pageTitle}>Audit Log</Text>
+            <Text style={[styles.pageSub, { color: '#E53935' }]}>
+              Error loading audit log
+            </Text>
+          </View>
+        </View>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color="#E53935" />
+          <Text style={styles.errorText}>Unable to load audit log</Text>
+          <Text style={styles.errorSub}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={fetchLog}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -164,7 +222,11 @@ export default function AdminAudit() {
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>DESCRIPTION</Text>
                 <Text style={styles.detailValue}>
-                  {getActionDescription(selectedEntry?.action, selectedEntry?.old_value, selectedEntry?.new_value)}
+                  {getActionDescription(
+                    selectedEntry?.action || '', 
+                    selectedEntry?.old_value || null, 
+                    selectedEntry?.new_value || null
+                  )}
                 </Text>
               </View>
               <View style={styles.detailRow}>
@@ -244,6 +306,15 @@ const styles = StyleSheet.create({
   dateCell: { color: '#8A8070', fontSize: 11 },
   emptyRow: { padding: 32, alignItems: 'center', gap: 8 },
   emptyText: { color: '#8A8070', fontSize: 13 },
+  
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, gap: 16 },
+  loadingText: { fontSize: 16, fontWeight: '600', color: '#8A8070' },
+  
+  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, gap: 16 },
+  errorText: { fontSize: 16, fontWeight: '700', color: '#1A1611' },
+  errorSub: { fontSize: 13, color: '#8A8070', textAlign: 'center' },
+  retryButton: { marginTop: 12, backgroundColor: '#1A1611', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10 },
+  retryButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
 
   overlay: { flex: 1, backgroundColor: 'rgba(26,22,17,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modal: { backgroundColor: '#FFFFFF', borderRadius: 20, width: '100%', maxWidth: 560, maxHeight: '85%', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 24, elevation: 10 },

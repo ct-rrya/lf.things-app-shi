@@ -17,6 +17,7 @@ const NAV = [
   { name: 'custody',  label: 'Custody',    icon: 'archive-outline' },
   { name: 'audit',    label: 'Audit Log',  icon: 'document-text-outline' },
   { name: 'passcodes', label: 'Passcodes', icon: 'key-outline' },
+  { name: 'debug',    label: 'Debug',     icon: 'bug-outline' },
 ];
 
 // ── Passcode gate ──────────────────────────────────────────────
