@@ -5,8 +5,6 @@
 CREATE TABLE IF NOT EXISTS chat_threads (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   item_id UUID REFERENCES items(id) ON DELETE CASCADE NOT NULL,
-  registered_item_id UUID REFERENCES items(id) ON DELETE CASCADE,
-  match_id UUID REFERENCES ai_matches(id) ON DELETE SET NULL,
   owner_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   finder_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'resolved', 'closed')),
