@@ -5,9 +5,8 @@ import {
 } from 'react-native';
 import { Stack, useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import Constants from 'expo-constants';
+import { supabaseAdmin as supabase } from '../../lib/supabaseAdmin';
 
-const ADMIN_CODE = Constants.expoConfig?.extra?.adminCode || process.env.EXPO_PUBLIC_ADMIN_CODE || 'ctu-admin-2025';
 const SESSION_KEY = 'lf_admin_unlocked';
 
 const NAV = [
@@ -17,6 +16,7 @@ const NAV = [
   { name: 'items',    label: 'All Items',  icon: 'cube-outline' },
   { name: 'custody',  label: 'Custody',    icon: 'archive-outline' },
   { name: 'audit',    label: 'Audit Log',  icon: 'document-text-outline' },
+  { name: 'passcodes', label: 'Passcodes', icon: 'key-outline' },
 ];
 
 // ── Passcode gate ──────────────────────────────────────────────
@@ -25,14 +25,38 @@ function PasscodeGate({ onUnlock }) {
   const [error, setError] = useState('');
   const [shake, setShake] = useState(false);
 
-  function handleSubmit() {
-    if (code === ADMIN_CODE) {
-      if (Platform.OS === 'web') localStorage.setItem(SESSION_KEY, '1');
-      onUnlock();
-    } else {
-      setError('Incorrect passcode');
+  async function handleSubmit() {
+    setError('');
+    
+    if (!code.trim()) {
+      setError('Please enter a passcode');
+      return;
+    }
+
+    try {
+      // Validate passcode against database using direct query
+      const { data, error } = await supabase
+        .from('admin_passcodes')
+        .select('id')
+        .eq('passcode', code.trim())
+        .eq('is_active', true)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+      
+      if (data) {
+        if (Platform.OS === 'web') localStorage.setItem(SESSION_KEY, '1');
+        onUnlock();
+      } else {
+        setError('Incorrect passcode');
+        setShake(true);
+        setCode('');
+        setTimeout(() => setShake(false), 600);
+      }
+    } catch (err) {
+      console.error('Passcode validation error:', err);
+      setError('Error validating passcode. Please try again.');
       setShake(true);
-      setCode('');
       setTimeout(() => setShake(false), 600);
     }
   }
