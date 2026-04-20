@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  Alert, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Modal,
+  Alert, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Modal, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -19,10 +19,20 @@ export default function AuthScreen() {
   const [showSplash, setShowSplash] = useState(true);
   const [showTerms, setShowTerms] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const router = useRouter();
 
   useEffect(() => {
-    const t = setTimeout(() => setShowSplash(false), 2000);
+    // Fade in the auth screen
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      delay: 2200, // Start fading in before splash disappears
+      useNativeDriver: true,
+    }).start();
+
+    // Hide splash after fade completes
+    const t = setTimeout(() => setShowSplash(false), 2800);
     return () => clearTimeout(t);
   }, []);
 
@@ -170,7 +180,7 @@ export default function AuthScreen() {
   const isLogin = mode === 'login';
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       {Platform.OS === 'web' && <View style={styles.webBg} />}
       <KeyboardAvoidingView
         style={[styles.keyboardView, Platform.OS === 'web' && styles.webFrame]}
@@ -429,7 +439,7 @@ export default function AuthScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </Animated.View>
   );
 }
 
