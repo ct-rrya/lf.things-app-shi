@@ -155,14 +155,48 @@ export default function Register() {
   }
 
   async function handleRegister() {
-    if (!name.trim()) { Alert.alert('Error', 'Please enter an item name'); return; }
-    if (photos.length === 0) { setPhotoError('Please add at least one photo of your item'); Alert.alert('Photo Required', 'Please add at least one photo of your item'); return; }
-    if (!ownerName.trim()) { Alert.alert('Error', 'Please enter your full name'); return; }
-    if (!program.trim() || !yearSection.trim()) { Alert.alert('Error', 'Please enter your program and year/section'); return; }
+    // Validate item name
+    if (!name.trim()) {
+      Alert.alert('Item Name Required', 'Please enter a name for your item (e.g., "My Blue Backpack")');
+      return;
+    }
+    
+    // Validate photos
+    if (photos.length === 0) {
+      setPhotoError('Please add at least one photo of your item');
+      Alert.alert('Photo Required', 'Please add at least one clear photo of your item. This helps finders identify it.');
+      return;
+    }
+    
+    // Validate owner name
+    if (!ownerName.trim()) {
+      Alert.alert('Full Name Required', 'Please enter your full name so finders can contact you');
+      return;
+    }
+    
+    // Validate program
+    if (!program.trim()) {
+      Alert.alert('Program Required', 'Please enter your program (e.g., BSCS, BSIT, BSA)');
+      return;
+    }
+    
+    // Validate year/section
+    if (!yearSection.trim()) {
+      Alert.alert('Year & Section Required', 'Please enter your year and section (e.g., 3rd Year – Section A)');
+      return;
+    }
+    
+    // Validate category-specific required fields
     const fields = getCategoryFields(category.id);
     const requiredFields = fields.filter(f => f.required);
     const missingFields = requiredFields.filter(f => !formData[f.name]?.trim());
-    if (missingFields.length > 0) { Alert.alert('Missing Information', `Please fill in: ${missingFields.map(f => f.label).join(', ')}`); return; }
+    if (missingFields.length > 0) {
+      Alert.alert(
+        'Missing Required Information',
+        `Please fill in the following fields:\n\n• ${missingFields.map(f => f.label).join('\n• ')}`
+      );
+      return;
+    }
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();

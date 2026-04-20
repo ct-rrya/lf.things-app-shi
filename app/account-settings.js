@@ -67,6 +67,24 @@ export default function AccountSettings() {
   }
 
   async function handleSave() {
+    // Validate display name
+    if (!displayName.trim()) {
+      Alert.alert('Display Name Required', 'Please enter your display name');
+      return;
+    }
+    
+    // Validate display name length
+    if (displayName.trim().length < 2) {
+      Alert.alert('Name Too Short', 'Display name must be at least 2 characters long');
+      return;
+    }
+    
+    // Validate bio length
+    if (bio.length > 120) {
+      Alert.alert('Bio Too Long', 'Bio must be 120 characters or less');
+      return;
+    }
+    
     setSaving(true);
     try {
       const { error } = await supabase
@@ -79,10 +97,10 @@ export default function AccountSettings() {
         }, { onConflict: 'id' });
 
       if (error) throw error;
-      Alert.alert('Saved', 'Your profile has been updated.');
+      Alert.alert('Profile Updated', 'Your profile has been saved successfully.');
       router.back();
     } catch (err) {
-      Alert.alert('Error', err.message);
+      Alert.alert('Save Failed', err.message || 'Could not save your profile. Please try again.');
     } finally {
       setSaving(false);
     }

@@ -101,12 +101,35 @@ export default function ReportFound() {
   }
 
   async function handleSubmit() {
-    if (!photo) { Alert.alert('Photo Required', 'Please add a photo of the found item'); return; }
+    // Validate photo
+    if (!photo) {
+      Alert.alert('Photo Required', 'Please add a clear photo of the found item. This helps match it with lost items.');
+      return;
+    }
+    
+    // Validate location
     const finalLocation = location === 'Other' ? customLocation.trim() : location;
-    if (!finalLocation) { Alert.alert('Location Required', 'Please specify where you found the item'); return; }
+    if (!finalLocation) {
+      Alert.alert('Location Required', 'Please specify where you found the item (e.g., Library, Canteen, Classroom)');
+      return;
+    }
+    
+    // Validate custom location if "Other" is selected
+    if (location === 'Other' && !customLocation.trim()) {
+      Alert.alert('Location Details Required', 'Please specify the exact location where you found the item');
+      return;
+    }
+    
+    // Validate category-specific required fields
     const fields = getCategoryFields(category.id);
     const missingFields = fields.filter(f => f.required && !formData[f.name]?.trim());
-    if (missingFields.length > 0) { Alert.alert('Missing Information', `Please fill in: ${missingFields.map(f => f.label).join(', ')}`); return; }
+    if (missingFields.length > 0) {
+      Alert.alert(
+        'Missing Required Information',
+        `Please fill in the following fields:\n\n• ${missingFields.map(f => f.label).join('\n• ')}`
+      );
+      return;
+    }
     setLoading(true);
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();

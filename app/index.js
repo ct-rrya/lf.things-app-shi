@@ -39,8 +39,22 @@ export default function AuthScreen() {
   if (showSplash) return <SplashScreen />;
 
   async function handleSignIn() {
-    if (!email.trim() || !password) {
-      Alert.alert('Error', 'Please enter your email and password');
+    // Validate email
+    if (!email.trim()) {
+      Alert.alert('Email Required', 'Please enter your email address to sign in');
+      return;
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address (e.g., name@example.com)');
+      return;
+    }
+    
+    // Validate password
+    if (!password) {
+      Alert.alert('Password Required', 'Please enter your password to sign in');
       return;
     }
     setLoading(true);
@@ -63,18 +77,40 @@ export default function AuthScreen() {
   }
 
   async function handleSignUp() {
+    // Validate terms acceptance
     if (!termsAccepted) {
       Alert.alert('Terms Required', 'Please accept the Terms & Conditions to continue');
       setShowTerms(true);
       return;
     }
     
-    if (!studentId.trim() || !email.trim() || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+    // Validate student ID
+    if (!studentId.trim()) {
+      Alert.alert('Student ID Required', 'Please enter your Student ID (e.g., 21-12345)');
       return;
     }
+    
+    // Validate email
+    if (!email.trim()) {
+      Alert.alert('Email Required', 'Please enter your email address');
+      return;
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address (e.g., name@example.com)');
+      return;
+    }
+    
+    // Validate password
+    if (!password) {
+      Alert.alert('Password Required', 'Please enter a password');
+      return;
+    }
+    
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert('Password Too Short', 'Password must be at least 6 characters long for security');
       return;
     }
     setLoading(true);
