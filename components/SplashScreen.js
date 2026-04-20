@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../styles/colors';
 
@@ -21,16 +21,18 @@ export default function SplashScreen() {
   const loadOpacity = useRef(new Animated.Value(0)).current;
   const dotBounce = useRef(new Animated.Value(0)).current;
 
+  const useNative = Platform.OS !== 'web'; // Only use native driver on mobile
+
   useEffect(() => {
     // Background blobs
     Animated.timing(blobOpacity, {
-      toValue: 1, duration: 1200, useNativeDriver: true,
+      toValue: 1, duration: 1200, useNativeDriver: useNative,
     }).start();
 
     // Ring spin (looping)
     Animated.loop(
       Animated.timing(ringRotation, {
-        toValue: 1, duration: 20000, easing: Easing.linear, useNativeDriver: true,
+        toValue: 1, duration: 20000, easing: Easing.linear, useNativeDriver: useNative,
       })
     ).start();
 
@@ -38,31 +40,31 @@ export default function SplashScreen() {
     Animated.loop(
       Animated.parallel([
         Animated.timing(pulseScale, {
-          toValue: 1.5, duration: 2500, easing: Easing.out(Easing.ease), useNativeDriver: true,
+          toValue: 1.5, duration: 2500, easing: Easing.out(Easing.ease), useNativeDriver: useNative,
         }),
         Animated.timing(pulseOpacity, {
-          toValue: 0, duration: 2500, useNativeDriver: true,
+          toValue: 0, duration: 2500, useNativeDriver: useNative,
         }),
       ])
     ).start();
 
     // Logo entrance
     Animated.parallel([
-      Animated.spring(logoScale, { toValue: 1, useNativeDriver: true, damping: 12, stiffness: 120 }),
-      Animated.timing(logoOpacity, { toValue: 1, duration: 500, delay: 300, useNativeDriver: true }),
+      Animated.spring(logoScale, { toValue: 1, useNativeDriver: useNative, damping: 12, stiffness: 120 }),
+      Animated.timing(logoOpacity, { toValue: 1, duration: 500, delay: 300, useNativeDriver: useNative }),
     ]).start();
 
     // Staggered text reveals
     Animated.stagger(150, [
       Animated.parallel([
-        Animated.timing(titleOpacity, { toValue: 1, duration: 600, delay: 500, useNativeDriver: true }),
-        Animated.timing(titleSlide, { toValue: 0, duration: 600, delay: 500, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(titleOpacity, { toValue: 1, duration: 600, delay: 500, useNativeDriver: useNative }),
+        Animated.timing(titleSlide, { toValue: 0, duration: 600, delay: 500, easing: Easing.out(Easing.cubic), useNativeDriver: useNative }),
       ]),
-      Animated.timing(subtitleOpacity, { toValue: 1, duration: 600, delay: 650, useNativeDriver: true }),
-      Animated.timing(dividerOpacity, { toValue: 1, duration: 600, delay: 750, useNativeDriver: true }),
+      Animated.timing(subtitleOpacity, { toValue: 1, duration: 600, delay: 650, useNativeDriver: useNative }),
+      Animated.timing(dividerOpacity, { toValue: 1, duration: 600, delay: 750, useNativeDriver: useNative }),
       Animated.parallel([
-        Animated.timing(badgeOpacity, { toValue: 1, duration: 600, delay: 850, useNativeDriver: true }),
-        Animated.timing(badgeSlide, { toValue: 0, duration: 600, delay: 850, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(badgeOpacity, { toValue: 1, duration: 600, delay: 850, useNativeDriver: useNative }),
+        Animated.timing(badgeSlide, { toValue: 0, duration: 600, delay: 850, easing: Easing.out(Easing.cubic), useNativeDriver: useNative }),
       ]),
     ]).start();
 
@@ -78,8 +80,8 @@ export default function SplashScreen() {
     Animated.delay(1500).start(() => {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(dotBounce, { toValue: -4, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(dotBounce, { toValue: 0, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(dotBounce, { toValue: -4, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: useNative }),
+          Animated.timing(dotBounce, { toValue: 0, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: useNative }),
           Animated.delay(1200),
         ])
       ).start();

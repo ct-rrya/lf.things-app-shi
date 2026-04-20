@@ -28,7 +28,7 @@ export default function AuthScreen() {
       toValue: 1,
       duration: 600,
       delay: 2200, // Start fading in before splash disappears
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web', // Only use native driver on mobile
     }).start();
 
     // Hide splash after fade completes

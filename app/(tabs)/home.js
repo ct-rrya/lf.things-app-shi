@@ -170,7 +170,11 @@ export default function Home() {
 
   async function fetchStats() {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.warn('No authenticated user for fetchStats');
+        return;
+      }
 
       // Get user's item IDs first
       const { data: ownedItems } = await supabase
@@ -202,7 +206,11 @@ export default function Home() {
 
   async function fetchRecentActivity() {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.warn('No authenticated user for fetchRecentActivity');
+        return;
+      }
 
       // Get user's item IDs first, then filter matches by those
       const { data: userItems } = await supabase
