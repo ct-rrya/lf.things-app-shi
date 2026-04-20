@@ -145,11 +145,6 @@ export default function AdminCustody() {
       setSaving(false);
     }
   }
-      Alert.alert('Error', err.message);
-    } finally {
-      setSaving(false);
-    }
-  }
 
   function actionColor(a) {
     return a === 'received' ? '#FB8C00' : a === 'claimed' || a === 'returned' ? '#43A047' : '#E53935';
