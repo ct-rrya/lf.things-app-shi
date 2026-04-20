@@ -21,13 +21,27 @@ export default function AdminCustody() {
 
   async function fetchLog() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('custody_log')
-      .select('*, items(name, category)')
-      .order('created_at', { ascending: false })
-      .limit(50);
-    if (!error) setLog(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('custody_log')
+        .select('*, items(name, category)')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (error) {
+        console.error('Error fetching custody log:', error);
+        Alert.alert('Error', 'Failed to load custody log. Please try again.');
+        setLog([]);
+      } else {
+        setLog(data || []);
+      }
+    } catch (err) {
+      console.error('Exception fetching custody log:', err);
+      Alert.alert('Error', 'An unexpected error occurred while loading custody log.');
+      setLog([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function searchItems(q) {
@@ -66,13 +80,34 @@ export default function AdminCustody() {
         notes: notes.trim() || null,
       };
       
-      await supabase.from('custody_log').insert([custodyData]);
+      // Insert custody log entry
+      const { error: custodyError } = await supabase
+        .from('custody_log')
+        .insert([custodyData]);
+      
+      if (custodyError) {
+        throw new Error(`Failed to create custody log: ${custodyError.message}`);
+      }
       
       // Update item status based on action
       if (action === 'received') {
-        await supabase.from('items').update({ status: 'at_admin' }).eq('id', selectedItem.id);
+        const { error: statusError } = await supabase
+          .from('items')
+          .update({ status: 'at_admin' })
+          .eq('id', selectedItem.id);
+        
+        if (statusError) {
+          throw new Error(`Failed to update item status: ${statusError.message}`);
+        }
       } else if (action === 'claimed' || action === 'returned') {
-        await supabase.from('items').update({ status: 'safe' }).eq('id', selectedItem.id);
+        const { error: statusError } = await supabase
+          .from('items')
+          .update({ status: 'safe' })
+          .eq('id', selectedItem.id);
+        
+        if (statusError) {
+          throw new Error(`Failed to update item status: ${statusError.message}`);
+        }
       }
       
       // Log audit trail
@@ -97,7 +132,19 @@ export default function AdminCustody() {
       setShelfTag('');
       setNotes('');
       fetchLog();
+      
+      Alert.alert('Success', `Custody action "${action}" recorded successfully.`);
     } catch (err) {
+      console.error('Error logging custody action:', err);
+      Alert.alert(
+        'Error',
+        err.message || 'Failed to record custody action. Please try again or contact support.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
       Alert.alert('Error', err.message);
     } finally {
       setSaving(false);

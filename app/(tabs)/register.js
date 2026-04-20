@@ -1,3 +1,13 @@
+// Register new items with QR codes
+
+/*
+Functions:
+    •	handleRegister(): Validates and saves item
+    •	generateQRCode(): Creates unique token and QR code
+    •	uploadPhotos(): Uploads to Supabase Storage
+    •	Category-specific fields from lib/categoryForms.js
+*/
+
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,

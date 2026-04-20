@@ -1,3 +1,13 @@
+// Scan QR codes on items
+
+/*
+Functions:
+    •	handleBarCodeScanned(): Processes scanned QR code
+    •	Extracts token from QR data
+    •	Navigates to /scan/[token]
+*/
+
+
 import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Alert, Linking,

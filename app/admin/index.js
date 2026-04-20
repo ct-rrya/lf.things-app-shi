@@ -1,3 +1,14 @@
+//Landing page and authentication screen
+
+/*
+Functions:
+    •	handleSignIn(): Authenticates user with email/password
+    •	handleSignUp(): Creates account after student ID verification
+    •	Validates student status is 'active'
+    •	Links auth account to student record
+    •	Creates profile with display_name from students table
+*/
+
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

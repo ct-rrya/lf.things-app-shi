@@ -1,3 +1,14 @@
+// Main dashboard after login
+
+/*
+Functions:
+    •	fetchUserData(): Gets user name from profiles -> user_metadata -> students
+    •	extractFirstName(): Handles Filipino naming convention (SURNAME FIRSTNAME)
+    •	fetchStats(): Counts items by status and pending matches
+    •	fetchRecentActivity(): Gets recent match notifications
+    •	openLostModal(): Shows user's items to mark as lost
+*/
+
 import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
@@ -52,14 +63,24 @@ export default function Home() {
           event: '*', schema: 'public', table: 'items',
           filter: `user_id=eq.${user.id}`,
         }, () => { fetchStats(); fetchRecentActivity(); })
-        .subscribe();
+        .subscribe((status) => {
+          if (status === 'SUBSCRIPTION_ERROR') {
+            console.error('Items subscription error - retrying...');
+            setTimeout(() => fetchStats(), 2000);
+          }
+        });
 
       matchSub = supabase
         .channel('home_matches_rt')
         .on('postgres_changes', {
           event: '*', schema: 'public', table: 'ai_matches',
         }, () => { fetchStats(); fetchRecentActivity(); })
-        .subscribe();
+        .subscribe((status) => {
+          if (status === 'SUBSCRIPTION_ERROR') {
+            console.error('Matches subscription error - retrying...');
+            setTimeout(() => fetchStats(), 2000);
+          }
+        });
 
       profileSub = supabase
         .channel('home_profile_rt')
@@ -67,7 +88,12 @@ export default function Home() {
           event: '*', schema: 'public', table: 'profiles',
           filter: `id=eq.${user.id}`,
         }, () => { fetchUserData(); })
-        .subscribe();
+        .subscribe((status) => {
+          if (status === 'SUBSCRIPTION_ERROR') {
+            console.error('Profile subscription error - retrying...');
+            setTimeout(() => fetchUserData(), 2000);
+          }
+        });
     });
 
     return () => {

@@ -1,3 +1,12 @@
+// Found item details view
+
+/*
+Functions:
+    •	fetchFoundItem(): Gets found item details
+    •	fetchMatches(): Gets AI-suggested matches
+    •	Navigation to match review
+*/
+
 import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Image,

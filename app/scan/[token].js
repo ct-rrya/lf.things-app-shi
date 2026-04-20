@@ -1,3 +1,12 @@
+// Display scanned item information
+
+/*
+Functions:
+    •	fetchItemByToken(): Queries items table
+    •	contactOwner(): Initiates chat or shows contact info
+    •	reportFound(): Marks item as found
+*/
+
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
@@ -49,6 +58,10 @@ export default function ScanPage() {
   }
 
   async function handleSubmit() {
+    console.log('=== SUBMIT STARTED ===');
+    console.log('Selected option:', selectedOption);
+    console.log('Item ID:', item?.id);
+    
     // Validation
     if (!selectedOption) {
       Alert.alert('Please Select an Option', 'Choose whether you\'ll turn it in or keep it with you.');
@@ -67,8 +80,9 @@ export default function ScanPage() {
     }
 
     try {
+      console.log('Inserting scan event...');
       // Create scan event
-      const { error } = await supabase
+      const { data: scanData, error: scanError } = await supabase
         .from('scan_events')
         .insert({
           item_id: item.id,
@@ -79,33 +93,136 @@ export default function ScanPage() {
           finder_email: null,
           location_note: locationNote.trim() || null,
           finder_user_id: null,
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      console.log('Scan event result:', { data: scanData, error: scanError });
+      if (scanError) {
+        throw new Error(`Failed to record scan: ${scanError.message}`);
+      }
+      
+      if (!scanData || scanData.length === 0) {
+        throw new Error('Scan event was not created properly');
+      }
 
       // Update item status
-      await supabase
+      const newStatus = selectedOption === 'turn_in' ? 'at_admin' : 'found';
+      const { error: statusError } = await supabase
+        .from('items')
+        .update({ status: newStatus })
+        .eq('id', item.id);
+
+      if (statusError) {
+        console.error('Failed to update item status:', statusError);
+        // Don't throw - scan event is already recorded
+      }
+
+      if (scanError) {
+        console.error('Scan event error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
+      }
+
+      console.log('Updating item status...');
+      // Update item status
+      const { data: updateData, error: updateError } = await supabase
         .from('items')
         .update({
           status: selectedOption === 'turn_in' ? 'at_admin' : 'located'
         })
-        .eq('id', item.id);
+        .eq('id', item.id)
+        .select();
 
+      console.log('Item update result:', { data: updateData, error: updateError });
+      if (updateError) throw updateError;
+
+      console.log('Creating notification...');
       // Notify the owner via notifications table
-      await supabase.from('notifications').insert({
+      const { data: notifData, error: notifError } = await supabase.from('notifications').insert({
         user_id: item.user_id,
         type: selectedOption === 'turn_in' ? 'item_turned_in' : 'item_located',
         title: selectedOption === 'turn_in' ? 'Item Turned In' : 'Item Located',
         body: selectedOption === 'turn_in'
           ? `Someone found your ${item.name} and turned it in to the SSG Office.`
-          : `Someone found your ${item.name} and still has it. Check your notifications for contact details.`,
-        data: { item_id: item.id },
-      }).maybeSingle(); // ignore error if notifications table doesn't exist yet
+          : `Someone found your ${item.name}. Check the chat to coordinate the return.`,
+        data: { 
+          item_id: item.id,
+          item_name: item.name 
+        },
+      }).select();
 
+      console.log('Notification result:', { data: notifData, error: notifError });
+      // ignore error if notifications table doesn't exist yet
+
+      // If "have_it" option, create chat thread and navigate to it
+      if (selectedOption === 'have_it') {
+        console.log('Creating chat thread...');
+        
+        // Check if user is logged in
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          // Check for existing thread
+          const { data: existingThread } = await supabase
+            .from('chat_threads')
+            .select('id')
+            .eq('item_id', item.id)
+            .eq('finder_id', user.id)
+            .maybeSingle();
+          
+          if (existingThread) {
+            console.log('Using existing thread:', existingThread.id);
+            setSubmitted(true);
+            // Navigate to existing chat
+            setTimeout(() => {
+              router.push(`/chat/${existingThread.id}`);
+            }, 1500);
+            return;
+          }
+          
+          // Create new chat thread
+          const { data: newThread, error: threadError } = await supabase
+            .from('chat_threads')
+            .insert({
+              item_id: item.id,
+              owner_id: item.user_id,
+              finder_id: user.id,
+              status: 'active'
+            })
+            .select()
+            .single();
+          
+          if (threadError) {
+            console.error('Thread creation error:', threadError);
+          } else {
+            console.log('Created new thread:', newThread.id);
+            
+            // Send initial message
+            await supabase.from('chat_messages').insert({
+              thread_id: newThread.id,
+              sender_id: user.id,
+              message: `Hi! I found your ${item.name}. Let's arrange a time to return it.`
+            });
+            
+            setSubmitted(true);
+            // Navigate to chat after showing success
+            setTimeout(() => {
+              router.push(`/chat/${newThread.id}`);
+            }, 1500);
+            return;
+          }
+        }
+      }
+
+      console.log('=== SUBMIT SUCCESS ===');
       setSubmitted(true);
     } catch (error) {
       console.error('Submit error:', error);
-      Alert.alert('Error', 'Failed to submit. Please try again.');
+      Alert.alert('Error', `Failed to submit: ${error.message}`);
     }
   }
 
@@ -151,6 +268,73 @@ export default function ScanPage() {
         <Text style={styles.successSubtext}>
           Your honesty helps reunite lost items with their owners. 🙏
         </Text>
+        
+        {selectedOption === 'have_it' && (
+          <TouchableOpacity
+            style={styles.chatButton}
+            onPress={async () => {
+              try {
+                // Check if user is logged in
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (!user) {
+                  Alert.alert(
+                    'Login Required',
+                    'To chat with the owner, please create an account or log in.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Login', onPress: () => router.push('/auth') }
+                    ]
+                  );
+                  return;
+                }
+                
+                // Create or get existing chat thread
+                const { data: existingThread } = await supabase
+                  .from('chat_threads')
+                  .select('id')
+                  .eq('item_id', item.id)
+                  .eq('finder_id', user.id)
+                  .maybeSingle();
+                
+                if (existingThread) {
+                  router.push(`/chat/${existingThread.id}`);
+                  return;
+                }
+                
+                // Create new chat thread
+                const { data: newThread, error } = await supabase
+                  .from('chat_threads')
+                  .insert({
+                    item_id: item.id,
+                    owner_id: item.user_id,
+                    finder_id: user.id,
+                    status: 'active'
+                  })
+                  .select()
+                  .single();
+                
+                if (error) throw error;
+                
+                // Send initial message
+                await supabase.from('chat_messages').insert({
+                  thread_id: newThread.id,
+                  sender_id: user.id,
+                  message: `Hi! I found your ${item.name}. Let's arrange a time to return it.`
+                });
+                
+                router.push(`/chat/${newThread.id}`);
+              } catch (error) {
+                console.error('Chat error:', error);
+                Alert.alert('Error', 'Failed to start chat. Please try again.');
+              }
+            }}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="chatbubbles" size={18} color="#FFFFFF" />
+            <Text style={styles.chatButtonText}>Chat with Owner</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
@@ -428,12 +612,12 @@ export default function ScanPage() {
           activeOpacity={0.85}
         >
           <Ionicons
-            name={selectedOption === 'turn_in' ? 'business' : 'send'}
+            name={selectedOption === 'turn_in' ? 'business' : 'chatbubbles'}
             size={18}
             color="#FFFFFF"
           />
           <Text style={styles.submitButtonText}>
-            {selectedOption === 'turn_in' ? 'Confirm Turn In' : 'Notify Owner'}
+            {selectedOption === 'turn_in' ? 'Confirm Turn In' : 'Chat & Notify Owner'}
           </Text>
         </TouchableOpacity>
       )}
@@ -880,5 +1064,29 @@ const styles = StyleSheet.create({
     color: 'rgba(69,53,75,0.5)',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  
+  // Chat Button
+  chatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: colors.grape,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginTop: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  chatButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
 });

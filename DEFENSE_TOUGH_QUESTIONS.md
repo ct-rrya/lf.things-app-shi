@@ -383,6 +383,8 @@ async function fetchLog() {
 }
 ```
 
+"This function retrieves the audit log from our database. The audit log tracks all administrative actions in the system - like when an admin adds a student, changes an item status, or reviews a match. It's crucial for accountability and security."
+
 ### **Q22: What if Supabase shuts down tomorrow?**
 **Vendor Lock-in**
 

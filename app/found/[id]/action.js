@@ -1,3 +1,12 @@
+// Review and confirm matches
+
+/*
+Functions:
+    •	confirmMatch(): Marks match as confirmed, creates chat
+    •	rejectMatch(): Marks match as rejected
+    •	fetchMatchDetails(): Gets both items' full details
+*/
+
 import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput,
@@ -138,7 +147,7 @@ export default function FinderActionPage() {
     setSubmitting(true);
     try {
       // 1. Insert scan event
-      const { data: scanEvent, error: scanError } = await supabase
+      const { data: scanEventData, error: scanError } = await supabase
         .from('scan_events')
         .insert([{
           item_id: id,
@@ -149,7 +158,13 @@ export default function FinderActionPage() {
         .select()
         .single();
 
-      if (scanError) throw scanError;
+      if (scanError) {
+        throw new Error(`Failed to record scan event: ${scanError.message}`);
+      }
+
+      if (!scanEventData) {
+        throw new Error('Scan event was not created properly');
+      }
 
       // 2. Update item status to 'found' or 'at_admin'
       const newStatus = selectedAction === 'turned_in_admin' ? 'at_admin' : 'found';
@@ -158,7 +173,11 @@ export default function FinderActionPage() {
         .update({ status: newStatus })
         .eq('id', id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        // Attempt to rollback scan event
+        await supabase.from('scan_events').delete().eq('id', scanEventData.id);
+        throw new Error(`Failed to update item status: ${updateError.message}`);
+      }
 
       // 3. TODO: Trigger notifications via Edge Function
       // This would call a Supabase Edge Function that sends:
@@ -189,7 +208,11 @@ export default function FinderActionPage() {
       );
     } catch (err) {
       console.error('Error submitting action:', err);
-      Alert.alert('Error', 'Failed to notify owner. Please try again.');
+      Alert.alert(
+        'Error',
+        err.message || 'Failed to notify owner. Please try again or contact support if the problem persists.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setSubmitting(false);
     }

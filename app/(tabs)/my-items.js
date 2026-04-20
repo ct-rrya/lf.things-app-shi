@@ -1,3 +1,14 @@
+// View and manage user's registered items
+
+/*
+Functions:
+    •	fetchItems(): Gets user's items filtered by status
+    •	updateItemStatus(): Changes item status
+    •	deleteItem(): Removes item from database
+    •	Real-time updates when items change
+*/
+
+
 import { useState, useEffect } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity, Image,
@@ -42,7 +53,9 @@ export default function MyItems() {
 
   async function fetchItems() {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      
       const { data, error } = await supabase
         .from('items')
         .select('*')
@@ -53,7 +66,11 @@ export default function MyItems() {
       setItems(data || []);
     } catch (err) {
       console.error('Error fetching items:', err);
-      Alert.alert('Error', 'Unable to load items');
+      Alert.alert(
+        'Unable to Load Items',
+        'There was a problem loading your items. Please check your connection and try again.',
+        [{ text: 'Retry', onPress: () => fetchItems() }, { text: 'Cancel', style: 'cancel' }]
+      );
     } finally {
       setLoading(false);
     }

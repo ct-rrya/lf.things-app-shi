@@ -41,21 +41,26 @@ export default function Notifications() {
   // ── LOGIC ──────────────────────────────────────────────────────
   async function fetchNotifications() {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
       if (!user) return;
 
       // Pull from unified notifications table
-      const { data: notifData } = await supabase
+      const { data: notifData, error: notifError } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
+      if (notifError) throw notifError;
+
       // Also pull scan events and AI matches for richer display
-      const { data: userItems } = await supabase
+      const { data: userItems, error: itemsError } = await supabase
         .from('items')
         .select('id')
         .eq('user_id', user.id);
+
+      if (itemsError) throw itemsError;
 
       const itemIds = (userItems || []).map(i => i.id);
 
@@ -78,11 +83,19 @@ export default function Notifications() {
           ])
         : [{ data: [] }, { data: [] }];
 
+      if (scanEventsRes.error) throw scanEventsRes.error;
+      if (matchesRes.error) throw matchesRes.error;
+
       setScans(notifData || []);
       setScanEvents(scanEventsRes.data || []);
       setMatches(matchesRes.data || []);
     } catch (error) {
       console.error('Fetch error:', error);
+      Alert.alert(
+        'Unable to Load Notifications',
+        'There was a problem loading your notifications. Please check your connection and try again.',
+        [{ text: 'Retry', onPress: () => fetchNotifications() }, { text: 'Cancel', style: 'cancel' }]
+      );
     } finally {
       setLoading(false);
     }
@@ -122,8 +135,14 @@ export default function Notifications() {
     const itemId = scan.items?.id || scan.data?.item_id;
     const itemName = scan.items?.name || scan.data?.item_name || 'item';
     
+    // Validate required data before rendering
     if (!itemId) {
       console.warn('Scan notification missing item_id:', scan);
+      return null;
+    }
+    
+    if (!scan.scanned_at && !scan.created_at) {
+      console.warn('Scan notification missing timestamp:', scan);
       return null;
     }
     

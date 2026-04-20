@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabaseAdmin as supabase } from '../../lib/supabaseAdmin';
 
@@ -26,7 +26,12 @@ export default function AdminItems() {
           setItems(prev => prev.filter(i => i.id !== payload.old.id));
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIPTION_ERROR') {
+          console.error('Admin items subscription error - retrying...');
+          setTimeout(() => fetchItems(), 2000);
+        }
+      });
 
     return () => supabase.removeChannel(channel);
   }, []);
@@ -35,14 +40,28 @@ export default function AdminItems() {
 
   async function fetchItems() {
     setLoading(true);
-    let query = supabase
-      .from('items')
-      .select('id, name, category, status, created_at, owner_name, program, year_section')
-      .order('created_at', { ascending: false });
-    if (filterStatus) query = query.eq('status', filterStatus);
-    const { data } = await query;
-    setItems(data || []);
-    setLoading(false);
+    try {
+      let query = supabase
+        .from('items')
+        .select('id, name, category, status, created_at, owner_name, program, year_section')
+        .order('created_at', { ascending: false });
+      if (filterStatus) query = query.eq('status', filterStatus);
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching items:', error);
+        Alert.alert('Error', 'Failed to load items. Please try again.');
+        setItems([]);
+      } else {
+        setItems(data || []);
+      }
+    } catch (err) {
+      console.error('Exception fetching items:', err);
+      Alert.alert('Error', 'An unexpected error occurred while loading items.');
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const filtered = items.filter(i =>

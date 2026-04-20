@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -70,16 +71,23 @@ export default function RootLayout() {
     };
   }, []);
 
+  const handleErrorReset = () => {
+    // Navigate to home on error reset
+    router.replace('/');
+  };
+
   if (!ready) return null;
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="auth" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="admin" />
-      <Stack.Screen name="account-settings" />
-      <Stack.Screen name="scan/[token]" />
-    </Stack>
+    <ErrorBoundary onReset={handleErrorReset}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="auth" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="admin" />
+        <Stack.Screen name="account-settings" />
+        <Stack.Screen name="scan/[token]" />
+      </Stack>
+    </ErrorBoundary>
   );
 }

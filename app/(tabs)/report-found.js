@@ -1,3 +1,12 @@
+// Purpose: Report found items
+
+/*
+Functions:
+    •	handleSubmit(): Saves found item and triggers matching
+    •	triggerAIMatching(): Calls AI matching algorithm
+    •	Photo upload to Supabase Storage
+*/
+
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,

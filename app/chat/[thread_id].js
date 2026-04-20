@@ -1,3 +1,13 @@
+// Individual chat conversation
+
+/*
+Functions:
+    •	fetchMessages(): Gets chat history
+    •	sendMessage(): Sends new message
+    •	Real-time subscription to new messages
+    •	markAsRead(): Updates read status
+*/
+
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput,
@@ -57,7 +67,18 @@ export default function ChatThread() {
           markMessagesAsRead();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIPTION_ERROR') {
+          console.error('Chat subscription error - attempting to reconnect...');
+          Alert.alert(
+            'Connection Issue',
+            'Real-time updates temporarily unavailable. Messages will still be delivered.',
+            [{ text: 'OK' }]
+          );
+        } else if (status === 'SUBSCRIBED') {
+          console.log('Chat subscription active');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -159,33 +180,47 @@ export default function ChatThread() {
             try {
               const now = new Date().toISOString();
 
-              await supabase
+              // Update item status
+              const { error: itemError } = await supabase
                 .from('items')
                 .update({ status: 'safe' })
                 .eq('id', threadInfo.registered_item_id);
 
-              await supabase
+              if (itemError) throw new Error(`Failed to update item: ${itemError.message}`);
+
+              // Update match status
+              const { error: matchError } = await supabase
                 .from('ai_matches')
                 .update({ status: 'recovered', recovered_at: now })
                 .eq('id', threadInfo.match_id);
 
-              const { data: matchData } = await supabase
+              if (matchError) throw new Error(`Failed to update match: ${matchError.message}`);
+
+              // Get and update found item
+              const { data: matchData, error: matchDataError } = await supabase
                 .from('ai_matches')
                 .select('found_item_id')
                 .eq('id', threadInfo.match_id)
                 .single();
 
-              if (matchData) {
-                await supabase
-                .from('found_items')
-                .update({ status: 'claimed' })
-                .eq('id', matchData.found_item_id);
+              if (matchDataError) throw new Error(`Failed to fetch match data: ${matchDataError.message}`);
+
+              if (matchData?.found_item_id) {
+                const { error: foundError } = await supabase
+                  .from('found_items')
+                  .update({ status: 'claimed' })
+                  .eq('id', matchData.found_item_id);
+
+                if (foundError) throw new Error(`Failed to update found item: ${foundError.message}`);
               }
 
-              await supabase
+              // Close chat thread
+              const { error: threadError } = await supabase
                 .from('chat_threads')
                 .update({ status: 'closed' })
                 .eq('id', thread_id);
+
+              if (threadError) throw new Error(`Failed to close chat: ${threadError.message}`);
 
               Alert.alert(
                 '✅ Item Returned!',
@@ -194,7 +229,11 @@ export default function ChatThread() {
               );
             } catch (err) {
               console.error('Error marking as recovered:', err);
-              Alert.alert('Error', 'Failed to mark item as recovered');
+              Alert.alert(
+                'Error',
+                err.message || 'Failed to mark item as recovered. Some changes may not have been saved. Please try again or contact support.',
+                [{ text: 'OK' }]
+              );
             }
           },
         },
