@@ -1,0 +1,70 @@
+// PRINT-OPTIMIZED: Custody Log (Admin) Flow
+// Generate PDF: dot -Tpdf -Gdpi=300 print-12-custody-log.dot -o custody-log-flow.pdf
+
+digraph CustodyLog {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial Bold", fontsize=14, penwidth=2];
+    edge [fontname="Arial", fontsize=12, penwidth=2];
+    
+    start [label="Open Custody Log", shape=ellipse, fillcolor=lightgreen];
+    end [label="Done", shape=ellipse, fillcolor=pink];
+    
+    fetchLog [label="Fetch Custody Log"];
+    displayLog [label="Display Log\n\nWith filters"];
+    
+    userAction [label="User Action", shape=diamond, fillcolor=lightyellow];
+    
+    filterAction [label="Filter by Action"];
+    search [label="Search"];
+    addEntry [label="Add Entry"];
+    
+    showModal [label="Add Entry Modal"];
+    selectItem [label="Select Item"];
+    selectAction [label="Select Action", shape=diamond, fillcolor=lightyellow];
+    
+    receive [label="RECEIVE\n\nItem received\nat office"];
+    claim [label="CLAIM\n\nOwner claims\nitem"];
+    return [label="RETURN\n\nItem returned\nto owner"];
+    dispose [label="DISPOSE\n\nItem disposed\nafter period"];
+    
+    enterDetails [label="Enter Details\n\n• Handler name\n• Notes\n• Timestamp"];
+    
+    submit [label="Submit"];
+    insertLog [label="Insert to\ncustody_log"];
+    updateItem [label="Update Item\nStatus"];
+    
+    logAudit [label="Log Audit Event", fillcolor=lightcyan];
+    refresh [label="Refresh Log"];
+    
+    start -> fetchLog;
+    fetchLog -> displayLog;
+    displayLog -> userAction;
+    
+    userAction -> filterAction [label="Filter"];
+    userAction -> search [label="Search"];
+    userAction -> addEntry [label="Add"];
+    
+    filterAction -> displayLog;
+    search -> displayLog;
+    
+    addEntry -> showModal;
+    showModal -> selectItem;
+    selectItem -> selectAction;
+    
+    selectAction -> receive [label="Receive"];
+    selectAction -> claim [label="Claim"];
+    selectAction -> return [label="Return"];
+    selectAction -> dispose [label="Dispose"];
+    
+    receive -> enterDetails;
+    claim -> enterDetails;
+    return -> enterDetails;
+    dispose -> enterDetails;
+    
+    enterDetails -> submit;
+    submit -> insertLog;
+    insertLog -> updateItem;
+    updateItem -> logAudit;
+    logAudit -> refresh;
+    refresh -> displayLog;
+}

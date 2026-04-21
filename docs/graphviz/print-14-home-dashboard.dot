@@ -1,0 +1,50 @@
+// PRINT-OPTIMIZED: Home Dashboard Flow
+// Generate PDF: dot -Tpdf -Gdpi=300 print-14-home-dashboard.dot -o home-flow.pdf
+
+digraph HomeDashboard {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial Bold", fontsize=14, penwidth=2];
+    edge [fontname="Arial", fontsize=12, penwidth=2];
+    
+    start [label="Open Home", shape=ellipse, fillcolor=lightgreen];
+    end [label="End", shape=ellipse, fillcolor=pink];
+    
+    fetchData [label="Fetch User Data\n\n• Statistics\n• Lost items\n• Matches\n• Activity"];
+    
+    display [label="Display Dashboard\n\nGreeting\nQuick Actions\nSummary Cards\nRecent Activity"];
+    
+    userAction [label="Select Action", shape=diamond, fillcolor=lightyellow];
+    
+    lostModal [label="I Lost Something"];
+    hasItems [label="Has Registered\nItems?", shape=diamond, fillcolor=lightyellow];
+    noItems [label="Register\nItem First", fillcolor=lightcoral];
+    selectItem [label="Select Item"];
+    markLost [label="Mark as Lost"];
+    
+    foundItem [label="I Found\nSomething"];
+    scanQR [label="Scan QR Code"];
+    viewItems [label="View My Items"];
+    viewMatches [label="View Matches"];
+    
+    start -> fetchData;
+    fetchData -> display;
+    display -> userAction;
+    
+    userAction -> lostModal [label="Lost"];
+    userAction -> foundItem [label="Found"];
+    userAction -> scanQR [label="Scan"];
+    userAction -> viewItems [label="Items"];
+    userAction -> viewMatches [label="Matches"];
+    
+    lostModal -> hasItems;
+    hasItems -> noItems [label="No"];
+    hasItems -> selectItem [label="Yes"];
+    selectItem -> markLost;
+    markLost -> display;
+    
+    noItems -> end;
+    foundItem -> end;
+    scanQR -> end;
+    viewItems -> end;
+    viewMatches -> end;
+}

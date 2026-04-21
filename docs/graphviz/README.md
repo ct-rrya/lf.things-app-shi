@@ -2,7 +2,50 @@
 
 This directory contains Graphviz DOT files for all major features in the LF (Lost & Found) application.
 
+## 🖨️ Quick Start for Printing
+
+**Want to print flowcharts?** Use the print-optimized versions:
+
+1. Start with **print-00-overview.dot** (single-page overview)
+2. Open https://dreampuf.github.io/GraphvizOnline/
+3. Copy and paste the file content
+4. Click "Export" → "PDF" or "PNG"
+5. Print at 300 DPI for best quality
+
+See **PRINT_OPTIMIZED_README.md** for detailed instructions.
+
 ## 📁 Files
+
+### 🖨️ Print-Optimized Versions (NEW!)
+These versions have larger fonts, bolder lines, and simplified layouts for better visibility when printed:
+
+**Overview (Start Here!)**
+- **print-00-overview.dot** - Single-page 6-stage workflow (SIMPLEST - START HERE!)
+- **print-00-simplified-workflow.dot** - Simplified 6-stage journey
+- **print-00-complete-system.dot** - Complete system overview (COMPREHENSIVE)
+- **print-00-system-architecture.dot** - System architecture and tech stack
+
+**Core User Flows**
+- **print-01-authentication.dot** - Authentication flow
+- **print-02-item-registration.dot** - Item registration flow
+- **print-03-qr-scanning.dot** - QR scanning flow
+- **print-04-report-found.dot** - Report found flow
+- **print-05-ai-matching.dot** - AI matching flow
+- **print-06-match-review.dot** - Match review flow
+- **print-07-chat-messaging.dot** - Chat/messaging flow
+- **print-08-my-items.dot** - My items management
+- **print-09-notifications.dot** - Notifications flow
+
+**Admin Flows**
+- **print-10-admin-dashboard.dot** - Admin dashboard flow
+- **print-11-student-management.dot** - Student management
+- **print-12-custody-log.dot** - Custody log
+
+**Dashboard & Settings**
+- **print-13-profile-settings.dot** - Profile & settings
+- **print-14-home-dashboard.dot** - Home dashboard flow
+
+See **PRINT_OPTIMIZED_README.md** for printing instructions.
 
 ### Overview & Architecture
 0. **00-general-workflow.dot** - Complete application workflow (all features)

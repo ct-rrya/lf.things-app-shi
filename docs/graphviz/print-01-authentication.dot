@@ -1,0 +1,63 @@
+// PRINT-OPTIMIZED: Authentication & Registration Flow
+// Optimized for printing with larger fonts and clearer layout
+// Generate PDF: dot -Tpdf -Gdpi=300 print-01-authentication.dot -o auth-flow.pdf
+
+digraph Authentication {
+    // Print-optimized settings
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial Bold", fontsize=14, penwidth=2];
+    edge [fontname="Arial", fontsize=12, penwidth=2];
+    
+    // Start/End
+    start [label="User Opens App", shape=ellipse, fillcolor=lightgreen];
+    home [label="HOME", shape=ellipse, fillcolor=lightgreen];
+    
+    // Main flow
+    splash [label="Splash Screen"];
+    checkAuth [label="Authenticated?", shape=diamond, fillcolor=lightyellow];
+    authScreen [label="Auth Screen"];
+    modeSelect [label="Sign In or\nSign Up?", shape=diamond, fillcolor=lightyellow];
+    
+    // Sign In (simplified)
+    signIn [label="SIGN IN\n\nEnter Email\n& Password"];
+    signInAuth [label="Supabase Auth"];
+    signInOK [label="Success?", shape=diamond, fillcolor=lightyellow];
+    error1 [label="Show Error", fillcolor=lightcoral];
+    
+    // Sign Up (simplified)
+    signUp [label="SIGN UP\n\nEnter Student ID\nEmail & Password"];
+    validate [label="Valid?", shape=diamond, fillcolor=lightyellow];
+    checkDB [label="Check Student\nDatabase"];
+    studentOK [label="Student\nFound &\nActive?", shape=diamond, fillcolor=lightyellow];
+    createAccount [label="Create Account\n& Link Student"];
+    success [label="Success!", fillcolor=lightgreen];
+    error2 [label="Show Error", fillcolor=lightcoral];
+    
+    // Main connections
+    start -> splash;
+    splash -> checkAuth;
+    checkAuth -> home [label="Yes"];
+    checkAuth -> authScreen [label="No"];
+    
+    authScreen -> modeSelect;
+    modeSelect -> signIn [label="Sign In"];
+    modeSelect -> signUp [label="Sign Up"];
+    
+    // Sign In path
+    signIn -> signInAuth;
+    signInAuth -> signInOK;
+    signInOK -> home [label="Yes"];
+    signInOK -> error1 [label="No"];
+    error1 -> authScreen;
+    
+    // Sign Up path
+    signUp -> validate;
+    validate -> error2 [label="No"];
+    validate -> checkDB [label="Yes"];
+    checkDB -> studentOK;
+    studentOK -> error2 [label="No"];
+    studentOK -> createAccount [label="Yes"];
+    createAccount -> success;
+    success -> authScreen;
+    error2 -> authScreen;
+}

@@ -70,7 +70,7 @@ export default function AdminStudents() {
       if (error) throw error;
       
       // Log audit trail
-      await logStudentChange(AuditActions.STUDENT_ADDED, data.id, null, studentData);
+      await logStudentChange(AuditActions.STUDENT_ADDED, data.student_id, null, studentData);
       
       setShowAddModal(false);
       setForm(EMPTY_FORM);
@@ -97,13 +97,13 @@ export default function AdminStudents() {
   }
 
   async function toggleStatus(student, next) {
-    const { error } = await supabase.from('students').update({ status: next }).eq('id', student.id);
+    const { error } = await supabase.from('students').update({ status: next }).eq('student_id', student.student_id);
     if (error) { Alert.alert('Error', error.message); return; }
     
     // Log audit trail
     await logStudentChange(
       AuditActions.STUDENT_STATUS_CHANGED,
-      student.id,
+      student.student_id,
       { status: student.status, full_name: student.full_name },
       { status: next, full_name: student.full_name }
     );
@@ -259,7 +259,7 @@ export default function AdminStudents() {
           ) : filtered.length === 0 ? (
             <View style={styles.emptyRow}><Text style={styles.emptyText}>No students found</Text></View>
           ) : filtered.map((s) => (
-            <View key={s.id} style={styles.tableRow}>
+            <View key={s.student_id} style={styles.tableRow}>
               <Text style={[styles.cell, styles.idCell]}>{s.student_id}</Text>
               <Text style={[styles.cell, styles.nameCell]} numberOfLines={1}>{s.full_name}</Text>
               <Text style={[styles.cell, styles.subCell]}>{s.program || '—'}</Text>

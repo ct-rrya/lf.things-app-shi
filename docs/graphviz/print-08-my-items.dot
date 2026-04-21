@@ -1,0 +1,67 @@
+// PRINT-OPTIMIZED: My Items Management Flow
+// Generate PDF: dot -Tpdf -Gdpi=300 print-08-my-items.dot -o my-items-flow.pdf
+
+digraph MyItems {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial Bold", fontsize=14, penwidth=2];
+    edge [fontname="Arial", fontsize=12, penwidth=2];
+    
+    start [label="Open My Items", shape=ellipse, fillcolor=lightgreen];
+    end [label="Done", shape=ellipse, fillcolor=pink];
+    
+    fetchItems [label="Fetch User's Items"];
+    groupStatus [label="Group by Status\n\n• Lost\n• Located\n• Recovered\n• Safe"];
+    
+    display [label="Display Grouped\nLists"];
+    
+    userAction [label="User Action", shape=diamond, fillcolor=lightyellow];
+    
+    tapItem [label="Tap Item"];
+    refresh [label="Pull to Refresh"];
+    tapFAB [label="Tap + Button"];
+    
+    loadDetail [label="Load Item Details"];
+    displayDetail [label="Display Details\n\n• Photo\n• QR Code\n• Status\n• Attributes"];
+    
+    detailAction [label="Action", shape=diamond, fillcolor=lightyellow];
+    
+    updateStatus [label="Update Status"];
+    shareQR [label="Share QR Code"];
+    printQR [label="Print QR Code"];
+    deleteItem [label="Delete Item"];
+    
+    confirmDelete [label="Confirm\nDelete?", shape=diamond, fillcolor=lightyellow];
+    
+    navRegister [label="Navigate to\nRegister"];
+    
+    start -> fetchItems;
+    fetchItems -> groupStatus;
+    groupStatus -> display;
+    display -> userAction;
+    
+    userAction -> tapItem [label="Tap Item"];
+    userAction -> refresh [label="Refresh"];
+    userAction -> tapFAB [label="Add New"];
+    
+    refresh -> fetchItems;
+    tapFAB -> navRegister;
+    navRegister -> end;
+    
+    tapItem -> loadDetail;
+    loadDetail -> displayDetail;
+    displayDetail -> detailAction;
+    
+    detailAction -> updateStatus [label="Status"];
+    detailAction -> shareQR [label="Share"];
+    detailAction -> printQR [label="Print"];
+    detailAction -> confirmDelete [label="Delete"];
+    detailAction -> display [label="Back"];
+    
+    updateStatus -> displayDetail;
+    shareQR -> end;
+    printQR -> end;
+    
+    confirmDelete -> displayDetail [label="No"];
+    confirmDelete -> deleteItem [label="Yes"];
+    deleteItem -> display;
+}

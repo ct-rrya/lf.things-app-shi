@@ -1,26 +1,40 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  Alert, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Modal, Animated,
+  StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Modal, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { colors } from '../styles/colors';
 import SplashScreen from '../components/SplashScreen';
+import { CTU_PROGRAMS, CTU_YEAR_LEVELS } from '../lib/ctuConstants';
+import { showAlert, setWebAlertHandler } from '../lib/alert';
 
 export default function AuthScreen() {
   const [mode, setMode] = useState('login');
   const [studentId, setStudentId] = useState('');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [program, setProgram] = useState('');
+  const [yearLevel, setYearLevel] = useState('');
+  const [section, setSection] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [showTerms, setShowTerms] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [alertConfig, setAlertConfig] = useState(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const router = useRouter();
+
+  // Register web alert handler
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      setWebAlertHandler((config) => setAlertConfig(config));
+    }
+  }, []);
 
   useEffect(() => {
     // Fade in the auth screen
@@ -41,20 +55,20 @@ export default function AuthScreen() {
   async function handleSignIn() {
     // Validate email
     if (!email.trim()) {
-      Alert.alert('Email Required', 'Please enter your email address to sign in');
+      showAlert('Email Required', 'Please enter your email address to sign in');
       return;
     }
     
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address (e.g., name@example.com)');
+      showAlert('Invalid Email', 'Please enter a valid email address (e.g., name@example.com)');
       return;
     }
     
     // Validate password
     if (!password) {
-      Alert.alert('Password Required', 'Please enter your password to sign in');
+      showAlert('Password Required', 'Please enter your password to sign in');
       return;
     }
     setLoading(true);
@@ -66,7 +80,7 @@ export default function AuthScreen() {
       if (error) throw error;
       router.replace('/(tabs)/home');
     } catch (err) {
-      Alert.alert('Sign In Failed',
+      showAlert('Sign In Failed',
         err.message === 'Invalid login credentials'
           ? 'Incorrect email or password.'
           : err.message
@@ -79,38 +93,55 @@ export default function AuthScreen() {
   async function handleSignUp() {
     // Validate terms acceptance
     if (!termsAccepted) {
-      Alert.alert('Terms Required', 'Please accept the Terms & Conditions to continue');
+      showAlert('Terms Required', 'Please accept the Terms & Conditions to continue');
       setShowTerms(true);
       return;
     }
     
     // Validate student ID
     if (!studentId.trim()) {
-      Alert.alert('Student ID Required', 'Please enter your Student ID (e.g., 21-12345)');
+      showAlert('Student ID Required', 'Please enter your Student ID (e.g., 21-12345)');
+      return;
+    }
+    
+    // Validate full name
+    if (!fullName.trim()) {
+      showAlert('Full Name Required', 'Please enter your full name');
       return;
     }
     
     // Validate email
     if (!email.trim()) {
-      Alert.alert('Email Required', 'Please enter your email address');
+      showAlert('Email Required', 'Please enter your email address');
       return;
     }
     
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address (e.g., name@example.com)');
+      showAlert('Invalid Email', 'Please enter a valid email address (e.g., name@example.com)');
+      return;
+    }
+    
+    // Validate program and year level
+    if (!program) {
+      showAlert('Program Required', 'Please select your program');
+      return;
+    }
+    
+    if (!yearLevel) {
+      showAlert('Year Level Required', 'Please select your year level');
       return;
     }
     
     // Validate password
     if (!password) {
-      Alert.alert('Password Required', 'Please enter a password');
+      showAlert('Password Required', 'Please enter a password');
       return;
     }
     
     if (password.length < 6) {
-      Alert.alert('Password Too Short', 'Password must be at least 6 characters long for security');
+      showAlert('Password Too Short', 'Password must be at least 6 characters long for security');
       return;
     }
     setLoading(true);
@@ -118,7 +149,7 @@ export default function AuthScreen() {
       // Verify student ID in master list
       const { data: student, error: lookupErr } = await supabase
         .from('students')
-        .select('id, status, auth_user_id')
+        .select('student_id, status, auth_user_id')
         .eq('student_id', studentId.trim())
         .maybeSingle();
 
@@ -126,24 +157,28 @@ export default function AuthScreen() {
 
       if (lookupErr) {
         console.error('Lookup error:', lookupErr);
-        Alert.alert('Database Error', lookupErr.message);
+        showAlert('Database Error', lookupErr.message);
+        setLoading(false);
         return;
       }
       
       if (!student) {
-        Alert.alert('Not in the System',
+        showAlert('Not in the System',
           'Your Student ID was not found. Contact the Student Affairs Office.');
+        setLoading(false);
         return;
       }
       
       if (student.status !== 'active') {
-        Alert.alert('Inactive', 'Your student record is inactive. Contact the Student Affairs Office.');
+        showAlert('Inactive', 'Your student record is inactive. Contact the Student Affairs Office.');
+        setLoading(false);
         return;
       }
       
       if (student.auth_user_id) {
-        Alert.alert('Already Registered', 'This Student ID already has an account. Please sign in.');
+        showAlert('Already Registered', 'This Student ID already has an account. Please sign in.');
         setMode('login');
+        setLoading(false);
         return;
       }
 
@@ -151,7 +186,16 @@ export default function AuthScreen() {
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: { emailRedirectTo: undefined },
+        options: {
+          data: {
+            student_id: studentId.trim(),
+            name: fullName.trim(),
+            program: program,
+            year_level: yearLevel,
+            section: section.trim() || null,
+          },
+          emailRedirectTo: undefined,
+        },
       });
       
       if (error) throw error;
@@ -162,52 +206,63 @@ export default function AuthScreen() {
       if (data.user) {
         console.log('Linking user:', data.user.id, 'to student:', studentId.trim());
         
-        // Update student record with auth_user_id
-        const { data: updateData, error: updateErr } = await supabase
-          .from('students')
-          .update({ auth_user_id: data.user.id, email: email.trim() })
-          .eq('student_id', studentId.trim())
-          .select();
-        
-        if (updateErr) {
-          console.error('Update error:', updateErr);
-          Alert.alert('Warning', 'Account created but failed to link to student record. Contact admin.');
-        } else {
-          console.log('Student record updated successfully:', updateData);
+        // Call the link function to update the students table
+        const { data: linkResult, error: linkError } = await supabase.rpc(
+          'link_student_account',
+          {
+            p_student_id: studentId.trim(),
+            p_auth_user_id: data.user.id,
+            p_email: email.trim(),
+            p_full_name: fullName.trim(),
+            p_program: program,
+            p_year_level: yearLevel,
+            p_section: section.trim() || null,
+          }
+        );
+
+        if (linkError) {
+          console.error('Failed to link student account:', linkError);
+          showAlert(
+            'Linking Error',
+            linkError.message || 'Failed to link your account to student record. Please contact support.'
+          );
+          setLoading(false);
+          return;
         }
-
-        // Fetch the student's full name
-        const { data: studentData, error: fetchErr } = await supabase
-          .from('students')
-          .select('full_name')
-          .eq('student_id', studentId.trim())
-          .single();
-
-        console.log('Fetched student data:', studentData, fetchErr);
+        
+        if (!linkResult) {
+          showAlert(
+            'Already Linked',
+            'This student ID is already linked to another account.'
+          );
+          setLoading(false);
+          return;
+        }
 
         // Create profile record with display_name
-        if (studentData?.full_name) {
-          const { data: profileData, error: profileErr } = await supabase
-            .from('profiles')
-            .upsert({
-              id: data.user.id,
-              display_name: studentData.full_name,
-              avatar_seed: studentId.trim(),
-            })
-            .select();
-          console.log('Profile creation result:', profileData, profileErr);
-        } else {
-          console.warn('No full_name found in student record');
-        }
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          display_name: fullName.trim(),
+          avatar_seed: studentId.trim(),
+          student_id: studentId.trim(),
+          program: program,
+          year_level: yearLevel,
+          section: section.trim() || null,
+        });
       }
 
-      Alert.alert('Account Created', 'You can now sign in with your email and password.');
+      showAlert('Account Created', 'You can now sign in with your email and password.');
       setMode('login');
       setStudentId('');
+      setFullName('');
+      setEmail('');
       setPassword('');
+      setProgram('');
+      setYearLevel('');
+      setSection('');
     } catch (err) {
       console.error('Signup error:', err);
-      Alert.alert('Error', err.message);
+      showAlert('Error', err.message);
     } finally {
       setLoading(false);
     }
@@ -297,6 +352,24 @@ export default function AuthScreen() {
                 </View>
               )}
 
+              {/* Full Name — sign up only */}
+              {!isLogin && (
+                <View style={styles.formGroup}>
+                  <Text style={styles.inputLabel}>FULL NAME</Text>
+                  <View style={styles.inputWrap}>
+                    <Ionicons name="person-outline" size={15} color="rgba(69,53,75,0.35)" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Juan Dela Cruz"
+                      placeholderTextColor="rgba(69,53,75,0.35)"
+                      value={fullName}
+                      onChangeText={setFullName}
+                      autoCorrect={false}
+                    />
+                  </View>
+                </View>
+              )}
+
               {/* Email — both modes */}
               <View style={styles.formGroup}>
                 <Text style={styles.inputLabel}>EMAIL</Text>
@@ -314,6 +387,82 @@ export default function AuthScreen() {
                   />
                 </View>
               </View>
+
+              {/* Program — sign up only */}
+              {!isLogin && (
+                <View style={styles.formGroup}>
+                  <Text style={styles.inputLabel}>PROGRAM</Text>
+                  <View style={styles.pickerContainer}>
+                    {CTU_PROGRAMS.map((prog) => (
+                      <TouchableOpacity
+                        key={prog}
+                        style={[
+                          styles.pickerOption,
+                          program === prog && styles.pickerOptionSelected,
+                        ]}
+                        onPress={() => setProgram(prog)}
+                        disabled={loading}
+                      >
+                        <Text
+                          style={[
+                            styles.pickerOptionText,
+                            program === prog && styles.pickerOptionTextSelected,
+                          ]}
+                        >
+                          {prog}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Year Level — sign up only */}
+              {!isLogin && (
+                <View style={styles.formGroup}>
+                  <Text style={styles.inputLabel}>YEAR LEVEL</Text>
+                  <View style={styles.pickerContainer}>
+                    {CTU_YEAR_LEVELS.map((year) => (
+                      <TouchableOpacity
+                        key={year}
+                        style={[
+                          styles.pickerOption,
+                          yearLevel === year && styles.pickerOptionSelected,
+                        ]}
+                        onPress={() => setYearLevel(year)}
+                        disabled={loading}
+                      >
+                        <Text
+                          style={[
+                            styles.pickerOptionText,
+                            yearLevel === year && styles.pickerOptionTextSelected,
+                          ]}
+                        >
+                          {year}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Section — sign up only */}
+              {!isLogin && (
+                <View style={styles.formGroup}>
+                  <Text style={styles.inputLabel}>SECTION (OPTIONAL)</Text>
+                  <View style={styles.inputWrap}>
+                    <Ionicons name="people-outline" size={15} color="rgba(69,53,75,0.35)" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="e.g. 3A"
+                      placeholderTextColor="rgba(69,53,75,0.35)"
+                      value={section}
+                      onChangeText={setSection}
+                      autoCorrect={false}
+                    />
+                  </View>
+                </View>
+              )}
 
               {/* Password — both modes */}
               <View style={styles.formGroup}>
@@ -475,6 +624,49 @@ export default function AuthScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* ── CUSTOM ALERT MODAL (for web compatibility) ── */}
+      {alertConfig && (
+        <Modal visible={true} transparent animationType="fade" onRequestClose={() => setAlertConfig(null)}>
+          <View style={styles.alertOverlay}>
+            <View style={styles.alertModal}>
+              <View style={styles.alertHeader}>
+                <Ionicons 
+                  name={alertConfig.title.toLowerCase().includes('error') || alertConfig.title.toLowerCase().includes('failed') ? 'alert-circle' : 'information-circle'} 
+                  size={24} 
+                  color={alertConfig.title.toLowerCase().includes('error') || alertConfig.title.toLowerCase().includes('failed') ? '#E53935' : '#1A1611'} 
+                />
+                <Text style={styles.alertTitle}>{alertConfig.title}</Text>
+              </View>
+              <Text style={styles.alertMessage}>{alertConfig.message}</Text>
+              <View style={styles.alertActions}>
+                {(alertConfig.buttons || [{ text: 'OK' }]).map((button, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.alertButton,
+                      button.style === 'cancel' && styles.alertButtonCancel,
+                      (alertConfig.buttons || []).length === 1 && styles.alertButtonSingle,
+                    ]}
+                    onPress={() => {
+                      setAlertConfig(null);
+                      if (button.onPress) button.onPress();
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[
+                      styles.alertButtonText,
+                      button.style === 'cancel' && styles.alertButtonTextCancel,
+                    ]}>
+                      {button.text}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </Animated.View>
   );
 }
@@ -532,6 +724,32 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' && { outlineWidth: 0 }),
   },
   eyeBtn: { padding: 4, marginLeft: 4 },
+  pickerContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  pickerOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: 'rgba(69,53,75,0.12)',
+    backgroundColor: '#FFFFFF',
+  },
+  pickerOptionSelected: {
+    borderColor: colors.grape,
+    backgroundColor: 'rgba(69,53,75,0.08)',
+  },
+  pickerOptionText: {
+    fontSize: 12,
+    color: 'rgba(69,53,75,0.6)',
+    fontWeight: '500',
+  },
+  pickerOptionTextSelected: {
+    fontWeight: '700',
+    color: colors.grape,
+  },
   button: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: colors.ember, padding: 15, borderRadius: 12, marginTop: 4,
@@ -645,5 +863,71 @@ const styles = StyleSheet.create({
   },
   termsBtnAcceptText: {
     fontSize: 14, fontWeight: '700', color: '#FFFFFF',
+  },
+
+  // ── Custom Alert Modal ──
+  alertOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(26,22,17,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  alertModal: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 400,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  alertHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  alertTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1A1611',
+  },
+  alertMessage: {
+    fontSize: 14,
+    color: '#5A5248',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  alertActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  alertButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#1A1611',
+    alignItems: 'center',
+  },
+  alertButtonCancel: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E8E0D0',
+  },
+  alertButtonSingle: {
+    flex: 1,
+  },
+  alertButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  alertButtonTextCancel: {
+    color: '#8A8070',
   },
 });

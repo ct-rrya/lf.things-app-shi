@@ -1,0 +1,82 @@
+// PRINT-OPTIMIZED: LF App Complete Overview
+// Single-page overview optimized for printing
+// Generate PDF: dot -Tpdf -Gdpi=300 print-00-overview.dot -o lf-overview.pdf
+
+digraph LFOverview {
+    rankdir=LR;
+    node [shape=box, style="rounded,filled", fontname="Arial Bold", fontsize=16, penwidth=2.5];
+    edge [fontname="Arial Bold", fontsize=13, penwidth=2.5];
+    
+    // Stage 1: Registration
+    subgraph cluster_1 {
+        label="1. REGISTER";
+        style=filled;
+        fillcolor=lightblue;
+        fontsize=18;
+        
+        reg [label="Register Item\n\n✓ Upload photo\n✓ Add details\n✓ Get QR code", fillcolor=white, fontsize=14];
+    }
+    
+    // Stage 2: Lost
+    subgraph cluster_2 {
+        label="2. LOST";
+        style=filled;
+        fillcolor=lightcoral;
+        fontsize=18;
+        
+        lost [label="Mark as Lost\n\n✓ Update status\n✓ Activate AI", fillcolor=white, fontsize=14];
+    }
+    
+    // Stage 3: Found
+    subgraph cluster_3 {
+        label="3. FOUND";
+        style=filled;
+        fillcolor=lightgreen;
+        fontsize=18;
+        
+        found1 [label="Scan QR\n\nDirect contact", fillcolor=white, fontsize=14];
+        found2 [label="Report Found\n\nUpload photo\n& location", fillcolor=white, fontsize=14];
+    }
+    
+    // Stage 4: AI Match
+    subgraph cluster_4 {
+        label="4. AI MATCH";
+        style=filled;
+        fillcolor=gold;
+        fontsize=18;
+        
+        ai [label="AI Matching\n\n✓ Compare items\n✓ Score matches\n✓ Notify owner", fillcolor=white, fontsize=14];
+    }
+    
+    // Stage 5: Chat
+    subgraph cluster_5 {
+        label="5. COMMUNICATE";
+        style=filled;
+        fillcolor=lavender;
+        fontsize=18;
+        
+        chat [label="Chat System\n\n✓ Confirm match\n✓ Arrange return", fillcolor=white, fontsize=14];
+    }
+    
+    // Stage 6: Return
+    subgraph cluster_6 {
+        label="6. RETURN";
+        style=filled;
+        fillcolor=lightgreen;
+        fontsize=18;
+        
+        return [label="Item Returned\n\n✓ Direct handover\n✓ Via SSG office", fillcolor=white, fontsize=14];
+    }
+    
+    // Flow
+    reg -> lost [label="Item lost", fontsize=13];
+    lost -> ai [label="Auto-trigger", fontsize=13];
+    found1 -> chat [label="Direct", fontsize=13, style=dashed];
+    found2 -> ai [label="Match", fontsize=13];
+    ai -> chat [label="Match found", fontsize=13];
+    chat -> return [label="Confirmed", fontsize=13];
+    
+    // Success
+    success [label="✓ SUCCESS!", shape=ellipse, fillcolor=lightgreen, fontsize=20];
+    return -> success [penwidth=3];
+}

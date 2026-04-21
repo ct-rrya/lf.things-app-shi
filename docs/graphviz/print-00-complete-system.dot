@@ -1,0 +1,75 @@
+// PRINT-OPTIMIZED: Complete LF System Flow
+// Comprehensive system overview optimized for printing
+// Generate PDF: dot -Tpdf -Gdpi=300 print-00-complete-system.dot -o complete-system.pdf
+
+digraph CompleteSystem {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fontname="Arial Bold", fontsize=13, penwidth=2];
+    edge [fontname="Arial", fontsize=11, penwidth=2];
+    
+    // Start
+    start [label="LF APP START", shape=ellipse, fillcolor=lightgreen, fontsize=16];
+    
+    // Authentication
+    auth [label="AUTHENTICATION\n\nSign In / Sign Up\nStudent Verification", fillcolor=lightblue];
+    
+    // Main Dashboard
+    home [label="HOME DASHBOARD\n\nQuick Actions\nStatistics\nRecent Activity", fillcolor=lightyellow];
+    
+    // User Actions
+    register [label="REGISTER ITEM\n\n1. Select category\n2. Add photo\n3. Enter details\n4. Get QR code", fillcolor=lightcyan];
+    
+    markLost [label="MARK AS LOST\n\nUpdate item status\nActivate AI matching", fillcolor=lightcoral];
+    
+    reportFound [label="REPORT FOUND\n\n1. Upload photo\n2. Enter location\n3. Add description", fillcolor=lightgreen];
+    
+    scanQR [label="SCAN QR CODE\n\n1. Open camera\n2. Scan code\n3. Select action\n4. Record event", fillcolor=lightcyan];
+    
+    // AI System
+    aiMatch [label="AI MATCHING\n\nGoogle Gemini API\nCompare descriptions\nAnalyze photos\nScore matches (0-100)", fillcolor=gold];
+    
+    // Notifications
+    notify [label="NOTIFICATIONS\n\nMatch alerts\nScan events\nChat messages", fillcolor=lavender];
+    
+    // Chat
+    chat [label="CHAT SYSTEM\n\nOwner ↔ Finder\nConfirm match\nArrange return", fillcolor=lavender];
+    
+    // Return
+    returnDirect [label="DIRECT RETURN\n\nMeet in person\nHandover item", fillcolor=lightgreen];
+    
+    returnSSG [label="SSG OFFICE\n\nCustody log\nOfficial handover", fillcolor=lightgreen];
+    
+    // Admin
+    admin [label="ADMIN PANEL\n\nStudent management\nItem oversight\nCustody log\nAudit trail", fillcolor=pink];
+    
+    // Success
+    success [label="✓ ITEM RETURNED!", shape=ellipse, fillcolor=lightgreen, fontsize=16];
+    
+    // Main Flow
+    start -> auth;
+    auth -> home;
+    
+    home -> register [label="Register"];
+    home -> markLost [label="Lost"];
+    home -> reportFound [label="Found"];
+    home -> scanQR [label="Scan"];
+    home -> admin [label="Admin"];
+    
+    register -> home [label="Saved"];
+    
+    markLost -> aiMatch [label="Auto"];
+    reportFound -> aiMatch [label="Auto"];
+    scanQR -> notify [label="Owner notified"];
+    
+    aiMatch -> notify [label="Match ≥60"];
+    notify -> chat [label="User opens"];
+    
+    chat -> returnDirect [label="Confirmed"];
+    chat -> returnSSG [label="Via office"];
+    
+    returnDirect -> success;
+    returnSSG -> success;
+    
+    // Alternative path
+    scanQR -> chat [label="Direct contact", style=dashed];
+}

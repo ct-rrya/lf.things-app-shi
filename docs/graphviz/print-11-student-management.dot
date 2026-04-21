@@ -1,0 +1,83 @@
+// PRINT-OPTIMIZED: Student Management (Admin) Flow
+// Generate PDF: dot -Tpdf -Gdpi=300 print-11-student-management.dot -o student-mgmt-flow.pdf
+
+digraph StudentManagement {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial Bold", fontsize=14, penwidth=2];
+    edge [fontname="Arial", fontsize=12, penwidth=2];
+    
+    start [label="Open Student\nManagement", shape=ellipse, fillcolor=lightgreen];
+    end [label="Done", shape=ellipse, fillcolor=pink];
+    
+    fetchStudents [label="Fetch All Students"];
+    displayList [label="Display List\n\nWith filters"];
+    
+    userAction [label="User Action", shape=diamond, fillcolor=lightyellow];
+    
+    search [label="Search"];
+    filter [label="Filter by Status"];
+    add [label="Add Student"];
+    edit [label="Edit Student"];
+    delete [label="Delete Student"];
+    importCSV [label="Import CSV"];
+    
+    showAddModal [label="Add Student Modal\n\nEnter details"];
+    showEditModal [label="Edit Student Modal\n\nModify details"];
+    
+    validate [label="Valid?", shape=diamond, fillcolor=lightyellow];
+    error [label="Show Error", fillcolor=lightcoral];
+    
+    insertStudent [label="Insert to\nDatabase"];
+    updateStudent [label="Update\nDatabase"];
+    deleteRecord [label="Delete from\nDatabase"];
+    
+    logAudit [label="Log Audit Event", fillcolor=lightcyan];
+    
+    confirmDelete [label="Confirm?", shape=diamond, fillcolor=lightyellow];
+    
+    parseCSV [label="Parse CSV"];
+    validateCSV [label="Valid?", shape=diamond, fillcolor=lightyellow];
+    bulkInsert [label="Bulk Insert"];
+    
+    refresh [label="Refresh List"];
+    
+    start -> fetchStudents;
+    fetchStudents -> displayList;
+    displayList -> userAction;
+    
+    userAction -> search [label="Search"];
+    userAction -> filter [label="Filter"];
+    userAction -> add [label="Add"];
+    userAction -> edit [label="Edit"];
+    userAction -> delete [label="Delete"];
+    userAction -> importCSV [label="Import"];
+    
+    search -> displayList;
+    filter -> displayList;
+    
+    add -> showAddModal;
+    showAddModal -> validate;
+    validate -> error [label="No"];
+    error -> showAddModal;
+    validate -> insertStudent [label="Yes"];
+    insertStudent -> logAudit;
+    
+    edit -> showEditModal;
+    showEditModal -> validate;
+    validate -> updateStudent [label="Yes"];
+    updateStudent -> logAudit;
+    
+    delete -> confirmDelete;
+    confirmDelete -> displayList [label="No"];
+    confirmDelete -> deleteRecord [label="Yes"];
+    deleteRecord -> logAudit;
+    
+    importCSV -> parseCSV;
+    parseCSV -> validateCSV;
+    validateCSV -> error [label="No"];
+    validateCSV -> bulkInsert [label="Yes"];
+    bulkInsert -> logAudit;
+    
+    logAudit -> refresh;
+    refresh -> displayList;
+}

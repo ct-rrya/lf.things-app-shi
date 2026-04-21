@@ -1,0 +1,83 @@
+// PRINT-OPTIMIZED: System Architecture
+// Generate PDF: dot -Tpdf -Gdpi=300 print-00-system-architecture.dot -o system-architecture.pdf
+
+digraph SystemArchitecture {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fontname="Arial Bold", fontsize=14, penwidth=2];
+    edge [fontname="Arial", fontsize=12, penwidth=2];
+    
+    // Frontend
+    subgraph cluster_frontend {
+        label="FRONTEND";
+        style=filled;
+        fillcolor=lightblue;
+        fontsize=16;
+        
+        mobile [label="React Native\nExpo", fillcolor=white];
+        ui [label="React Navigation\nNativeWind", fillcolor=white];
+    }
+    
+    // Backend Services
+    subgraph cluster_backend {
+        label="BACKEND SERVICES";
+        style=filled;
+        fillcolor=lightgreen;
+        fontsize=16;
+        
+        supabase [label="Supabase\n\n• Auth\n• Database\n• Storage\n• Real-time", fillcolor=white];
+    }
+    
+    // AI Services
+    subgraph cluster_ai {
+        label="AI SERVICES";
+        style=filled;
+        fillcolor=gold;
+        fontsize=16;
+        
+        gemini [label="Google Gemini\n\nAI Matching\nImage Analysis", fillcolor=white];
+    }
+    
+    // Database
+    subgraph cluster_db {
+        label="DATABASE";
+        style=filled;
+        fillcolor=lavender;
+        fontsize=16;
+        
+        postgres [label="PostgreSQL\n\n• Users\n• Items\n• Matches\n• Chat\n• Audit", fillcolor=white];
+    }
+    
+    // Storage
+    subgraph cluster_storage {
+        label="STORAGE";
+        style=filled;
+        fillcolor=lightcyan;
+        fontsize=16;
+        
+        storage [label="Supabase Storage\n\nItem Photos\nQR Codes", fillcolor=white];
+    }
+    
+    // Security
+    subgraph cluster_security {
+        label="SECURITY";
+        style=filled;
+        fillcolor=pink;
+        fontsize=16;
+        
+        rls [label="Row Level Security\nRole-based Access", fillcolor=white];
+        audit [label="Audit Logging\nAll Admin Actions", fillcolor=white];
+    }
+    
+    // Connections
+    mobile -> ui;
+    ui -> supabase [label="API Calls"];
+    supabase -> postgres [label="Queries"];
+    supabase -> storage [label="Files"];
+    supabase -> gemini [label="AI Requests"];
+    
+    postgres -> rls [label="Enforces"];
+    postgres -> audit [label="Logs"];
+    
+    // Tech Stack
+    tech [label="TECH STACK\n\n• React Native\n• Expo\n• Supabase\n• PostgreSQL\n• Google Gemini\n• Tailwind CSS", shape=note, fillcolor=lightyellow, fontsize=13];
+}

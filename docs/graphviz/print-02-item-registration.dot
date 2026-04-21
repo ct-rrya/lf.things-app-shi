@@ -1,0 +1,42 @@
+// PRINT-OPTIMIZED: Item Registration Flow
+// Generate PDF: dot -Tpdf -Gdpi=300 print-02-item-registration.dot -o item-reg-flow.pdf
+
+digraph ItemRegistration {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial Bold", fontsize=14, penwidth=2];
+    edge [fontname="Arial", fontsize=12, penwidth=2];
+    
+    start [label="Register Item", shape=ellipse, fillcolor=lightgreen];
+    end [label="Success!", shape=ellipse, fillcolor=lightgreen];
+    
+    selectCat [label="Select Category"];
+    fillForm [label="Fill Form\n\n• Name\n• Description\n• Attributes"];
+    addPhoto [label="Add Photo?", shape=diamond, fillcolor=lightyellow];
+    pickImage [label="Pick Image"];
+    submit [label="Submit"];
+    
+    validate [label="Valid?", shape=diamond, fillcolor=lightyellow];
+    error [label="Show Error", fillcolor=lightcoral];
+    
+    upload [label="Upload Photo\nto Storage"];
+    genQR [label="Generate\nQR Code"];
+    saveDB [label="Save to\nDatabase"];
+    success [label="Item Registered!\n\nQR Code Ready"];
+    
+    start -> selectCat;
+    selectCat -> fillForm;
+    fillForm -> addPhoto;
+    addPhoto -> pickImage [label="Yes"];
+    addPhoto -> submit [label="No"];
+    pickImage -> submit;
+    
+    submit -> validate;
+    validate -> error [label="No"];
+    error -> fillForm;
+    
+    validate -> upload [label="Yes"];
+    upload -> genQR;
+    genQR -> saveDB;
+    saveDB -> success;
+    success -> end;
+}

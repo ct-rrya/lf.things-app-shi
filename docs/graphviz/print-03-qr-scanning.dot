@@ -1,0 +1,55 @@
+// PRINT-OPTIMIZED: QR Code Scanning Flow
+// Generate PDF: dot -Tpdf -Gdpi=300 print-03-qr-scanning.dot -o qr-scan-flow.pdf
+
+digraph QRScanning {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial Bold", fontsize=14, penwidth=2];
+    edge [fontname="Arial", fontsize=12, penwidth=2];
+    
+    start [label="Scan QR Code", shape=ellipse, fillcolor=lightgreen];
+    end [label="Done", shape=ellipse, fillcolor=lightgreen];
+    
+    checkPerm [label="Camera\nPermission?", shape=diamond, fillcolor=lightyellow];
+    requestPerm [label="Request\nPermission"];
+    permOK [label="Granted?", shape=diamond, fillcolor=lightyellow];
+    permError [label="Permission\nDenied", fillcolor=lightcoral];
+    
+    openCamera [label="Open Camera"];
+    scanning [label="Scanning..."];
+    detected [label="QR Found?", shape=diamond, fillcolor=lightyellow];
+    
+    validQR [label="Valid LF QR?", shape=diamond, fillcolor=lightyellow];
+    invalid [label="Invalid QR", fillcolor=lightcoral];
+    
+    loadItem [label="Load Item Info"];
+    showActions [label="Show Actions\n\n• Have It\n• Turned In\n• Left It\n• Contact Owner"];
+    
+    recordAction [label="Record Action"];
+    notify [label="Notify Owner"];
+    updateStatus [label="Update Status"];
+    success [label="Action Recorded!", fillcolor=lightgreen];
+    
+    start -> checkPerm;
+    checkPerm -> requestPerm [label="No"];
+    checkPerm -> openCamera [label="Yes"];
+    requestPerm -> permOK;
+    permOK -> openCamera [label="Yes"];
+    permOK -> permError [label="No"];
+    permError -> end;
+    
+    openCamera -> scanning;
+    scanning -> detected;
+    detected -> scanning [label="No"];
+    detected -> validQR [label="Yes"];
+    
+    validQR -> invalid [label="No"];
+    invalid -> scanning;
+    validQR -> loadItem [label="Yes"];
+    
+    loadItem -> showActions;
+    showActions -> recordAction;
+    recordAction -> notify;
+    notify -> updateStatus;
+    updateStatus -> success;
+    success -> end;
+}

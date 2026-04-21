@@ -1,0 +1,79 @@
+// PRINT-OPTIMIZED: Profile & Settings Flow
+// Generate PDF: dot -Tpdf -Gdpi=300 print-13-profile-settings.dot -o profile-flow.pdf
+
+digraph ProfileSettings {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial Bold", fontsize=14, penwidth=2];
+    edge [fontname="Arial", fontsize=12, penwidth=2];
+    
+    start [label="Open Profile", shape=ellipse, fillcolor=lightgreen];
+    end [label="Done", shape=ellipse, fillcolor=pink];
+    
+    fetchData [label="Fetch User Data\n\n• Profile info\n• Student info\n• Statistics"];
+    
+    display [label="Display Profile\n\nInfo\nStats\nMenu"];
+    
+    userAction [label="User Action", shape=diamond, fillcolor=lightyellow];
+    
+    settings [label="Account Settings"];
+    reports [label="My Reports"];
+    signOut [label="Sign Out"];
+    
+    loadSettings [label="Load Settings"];
+    showSettings [label="Show Settings\n\n• Name\n• Email\n• Password"];
+    
+    settingAction [label="Action", shape=diamond, fillcolor=lightyellow];
+    
+    editName [label="Edit Name"];
+    editEmail [label="Edit Email"];
+    changePass [label="Change Password"];
+    
+    updateProfile [label="Update User\nMetadata"];
+    updateAuth [label="Update Auth\nEmail/Password"];
+    
+    showSuccess [label="Success!", fillcolor=lightgreen];
+    
+    loadReports [label="Load Found\nReports"];
+    displayReports [label="Display Reports"];
+    
+    confirmSignOut [label="Confirm\nSign Out?", shape=diamond, fillcolor=lightyellow];
+    signOutAction [label="Sign Out"];
+    clearSession [label="Clear Session"];
+    navAuth [label="Navigate to\nAuth Screen"];
+    
+    start -> fetchData;
+    fetchData -> display;
+    display -> userAction;
+    
+    userAction -> settings [label="Settings"];
+    userAction -> reports [label="Reports"];
+    userAction -> signOut [label="Sign Out"];
+    
+    settings -> loadSettings;
+    loadSettings -> showSettings;
+    showSettings -> settingAction;
+    
+    settingAction -> editName [label="Name"];
+    settingAction -> editEmail [label="Email"];
+    settingAction -> changePass [label="Password"];
+    settingAction -> display [label="Back"];
+    
+    editName -> updateProfile;
+    editEmail -> updateAuth;
+    changePass -> updateAuth;
+    
+    updateProfile -> showSuccess;
+    updateAuth -> showSuccess;
+    showSuccess -> showSettings;
+    
+    reports -> loadReports;
+    loadReports -> displayReports;
+    displayReports -> end;
+    
+    signOut -> confirmSignOut;
+    confirmSignOut -> display [label="No"];
+    confirmSignOut -> signOutAction [label="Yes"];
+    signOutAction -> clearSession;
+    clearSession -> navAuth;
+    navAuth -> end;
+}

@@ -43,9 +43,24 @@ export default function AdminItems() {
     try {
       let query = supabase
         .from('items')
-        .select('id, name, category, status, created_at, owner_name, program, year_section')
+        .select(`
+          id, 
+          name, 
+          category, 
+          status, 
+          created_at,
+          student_id,
+          students:student_id (
+            full_name,
+            program,
+            year_level,
+            section
+          )
+        `)
         .order('created_at', { ascending: false });
+        
       if (filterStatus) query = query.eq('status', filterStatus);
+      
       const { data, error } = await query;
       
       if (error) {
@@ -53,7 +68,16 @@ export default function AdminItems() {
         Alert.alert('Error', 'Failed to load items. Please try again.');
         setItems([]);
       } else {
-        setItems(data || []);
+        // Transform the data to flatten the students object
+        const transformedData = (data || []).map(item => ({
+          ...item,
+          owner_name: item.students?.full_name || 'Unknown',
+          program: item.students?.program || '—',
+          year_section: item.students?.year_level && item.students?.section 
+            ? `${item.students.year_level}-${item.students.section}`
+            : item.students?.year_level || '—',
+        }));
+        setItems(transformedData);
       }
     } catch (err) {
       console.error('Exception fetching items:', err);

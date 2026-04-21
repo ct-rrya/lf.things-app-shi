@@ -63,7 +63,7 @@ export default function Auth() {
         // ── Verify student ID exists in master list ──────────
         const { data: studentRecord, error: lookupError } = await supabase
           .from('students')
-          .select('id, status, full_name')
+          .select('student_id, status, full_name')
           .eq('student_id', studentId.trim())
           .single();
 
@@ -90,11 +90,11 @@ export default function Auth() {
           password,
           options: {
             data: {
-              student_id: studentId,
-              name: fullName,
+              student_id: studentId.trim(),
+              name: fullName.trim(),
               program: program,
               year_level: yearLevel,
-              section: section,
+              section: section || null,
             },
             emailRedirectTo: undefined,
           },
@@ -102,25 +102,47 @@ export default function Auth() {
 
         if (error) throw error;
 
-        // Update profile with additional info
+        // Link auth user to student record immediately after signup
         if (data.user) {
+          // Call the link function to update the students table
+          const { data: linkResult, error: linkError } = await supabase.rpc(
+            'link_student_account',
+            {
+              p_student_id: studentId.trim(),
+              p_auth_user_id: data.user.id,
+              p_email: email.trim(),
+              p_full_name: fullName.trim(),
+              p_program: program,
+              p_year_level: yearLevel,
+              p_section: section || null,
+            }
+          );
+
+          if (linkError) {
+            console.error('Failed to link student account:', linkError);
+            Alert.alert(
+              'Linking Error',
+              linkError.message || 'Failed to link your account to student record. Please contact support.'
+            );
+            setLoading(false);
+            return;
+          }
+          
+          if (!linkResult) {
+            Alert.alert(
+              'Already Linked',
+              'This student ID is already linked to another account.'
+            );
+            setLoading(false);
+            return;
+          }
+
+          // Update profile with additional info
           await supabase.from('profiles').upsert({
             id: data.user.id,
-            display_name: fullName,
-            avatar_seed: studentId,
+            display_name: fullName.trim(),
+            avatar_seed: studentId.trim(),
           });
-          // Link auth user to master list record and save all details
-          await supabase
-            .from('students')
-            .update({
-              auth_user_id: data.user.id,
-              email: email.trim(),
-              full_name: fullName.trim(),
-              program: program,
-              year_level: yearLevel,
-              section: section || null,
-            })
-            .eq('student_id', studentId.trim());
         }
 
         Alert.alert('Success', 'Account created! You can now sign in.');

@@ -1,0 +1,59 @@
+// PRINT-OPTIMIZED: Notifications/Alerts Flow
+// Generate PDF: dot -Tpdf -Gdpi=300 print-09-notifications.dot -o notifications-flow.pdf
+
+digraph Notifications {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial Bold", fontsize=14, penwidth=2];
+    edge [fontname="Arial", fontsize=12, penwidth=2];
+    
+    start [label="Open Notifications", shape=ellipse, fillcolor=lightgreen];
+    end [label="Done", shape=ellipse, fillcolor=pink];
+    
+    fetchData [label="Fetch Data\n\n• Notifications\n• Scan Events\n• AI Matches"];
+    
+    combine [label="Combine & Sort\nby Date"];
+    
+    hasNotif [label="Has\nNotifications?", shape=diamond, fillcolor=lightyellow];
+    showEmpty [label="Empty State\n\nNo notifications"];
+    
+    displayList [label="Display List\n\nGrouped by Type"];
+    
+    showTypes [label="Show Types\n\n• Found Items\n• AI Matches\n• QR Scans"];
+    
+    userAction [label="User Taps\nNotification", shape=diamond, fillcolor=lightyellow];
+    
+    scanEvent [label="Scan Event"];
+    aiMatch [label="AI Match"];
+    markRead [label="Mark as Read"];
+    
+    navItem [label="Navigate to\n/item/id"];
+    navFound [label="Navigate to\n/found/id"];
+    
+    updateRead [label="Update\nread_at"];
+    refresh [label="Refresh List"];
+    
+    start -> fetchData;
+    fetchData -> combine;
+    combine -> hasNotif;
+    
+    hasNotif -> showEmpty [label="No"];
+    hasNotif -> displayList [label="Yes"];
+    showEmpty -> end;
+    
+    displayList -> showTypes;
+    showTypes -> userAction;
+    
+    userAction -> scanEvent [label="Scan"];
+    userAction -> aiMatch [label="Match"];
+    userAction -> markRead [label="Mark Read"];
+    
+    scanEvent -> navItem;
+    aiMatch -> navFound;
+    
+    navItem -> end;
+    navFound -> end;
+    
+    markRead -> updateRead;
+    updateRead -> refresh;
+    refresh -> displayList;
+}

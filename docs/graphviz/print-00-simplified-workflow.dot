@@ -1,0 +1,90 @@
+// PRINT-OPTIMIZED: Simplified Application Workflow
+// Generate PDF: dot -Tpdf -Gdpi=300 print-00-simplified-workflow.dot -o simplified-workflow.pdf
+
+digraph SimplifiedWorkflow {
+    rankdir=LR;
+    node [shape=box, style="rounded,filled", fontname="Arial Bold", fontsize=14, penwidth=2.5];
+    edge [fontname="Arial Bold", fontsize=13, penwidth=2.5];
+    
+    // Stage 1
+    subgraph cluster_1 {
+        label="1. REGISTER";
+        style=filled;
+        fillcolor=lightblue;
+        fontsize=18;
+        
+        s1 [label="Register Item\n\n✓ Upload photo\n✓ Enter details\n✓ Get QR code", fillcolor=white, fontsize=14];
+    }
+    
+    // Stage 2
+    subgraph cluster_2 {
+        label="2. LOST";
+        style=filled;
+        fillcolor=lightcoral;
+        fontsize=18;
+        
+        s2 [label="Mark as Lost\n\n✓ Update status\n✓ Activate AI", fillcolor=white, fontsize=14];
+    }
+    
+    // Stage 3
+    subgraph cluster_3 {
+        label="3. FOUND";
+        style=filled;
+        fillcolor=lightgreen;
+        fontsize=18;
+        
+        s3a [label="Scan QR", fillcolor=white, fontsize=14];
+        s3b [label="Report Found\n\n✓ Photo\n✓ Location", fillcolor=white, fontsize=14];
+    }
+    
+    // Stage 4
+    subgraph cluster_4 {
+        label="4. AI MATCH";
+        style=filled;
+        fillcolor=gold;
+        fontsize=18;
+        
+        s4 [label="AI Matching\n\n✓ Compare items\n✓ Score matches\n✓ Notify if ≥60%", fillcolor=white, fontsize=14];
+    }
+    
+    // Stage 5
+    subgraph cluster_5 {
+        label="5. CHAT";
+        style=filled;
+        fillcolor=lavender;
+        fontsize=18;
+        
+        s5 [label="Owner ↔ Finder\n\n✓ Confirm match\n✓ Arrange return", fillcolor=white, fontsize=14];
+    }
+    
+    // Stage 6
+    subgraph cluster_6 {
+        label="6. RETURN";
+        style=filled;
+        fillcolor=lightgreen;
+        fontsize=18;
+        
+        s6a [label="Direct\nHandover", fillcolor=white, fontsize=14];
+        s6b [label="Via SSG\nOffice", fillcolor=white, fontsize=14];
+    }
+    
+    // Flow
+    s1 -> s2 [label="Item lost", fontsize=13];
+    s2 -> s4 [label="Auto", fontsize=13];
+    
+    s3a -> s4 [label="Identify", fontsize=13];
+    s3b -> s4 [label="Match", fontsize=13];
+    
+    s4 -> s5 [label="Match found", fontsize=13];
+    
+    s5 -> s6a [label="Direct", fontsize=13];
+    s5 -> s6b [label="Office", fontsize=13];
+    
+    // Alternative
+    s3a -> s5 [label="Direct contact", style=dashed, fontsize=12];
+    
+    // Success
+    success [label="✓ SUCCESS!", shape=ellipse, fillcolor=lightgreen, fontsize=18];
+    s6a -> success [penwidth=3];
+    s6b -> success [penwidth=3];
+}

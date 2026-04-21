@@ -16,7 +16,7 @@ export default function AdminAudit() {
 
   async function fetchLog() {
     setLoading(true);
-    setError(null); // Clear previous errors
+    setError(null);
     try {
       let query = supabase
         .from('audit_log')
@@ -33,7 +33,30 @@ export default function AdminAudit() {
         setError(fetchError.message || 'Failed to fetch audit log');
         setLog([]);
       } else {
-        setLog(data || []);
+        // Get admin names for actor_ids
+        const actorIds = [...new Set((data || []).map(entry => entry.actor_id).filter(Boolean))];
+        
+        if (actorIds.length > 0) {
+          const { data: adminsData } = await supabase
+            .from('admins')
+            .select('user_id, name')
+            .in('user_id', actorIds);
+          
+          const adminMap = {};
+          (adminsData || []).forEach(admin => {
+            adminMap[admin.user_id] = admin.name;
+          });
+          
+          // Add admin names to log entries
+          const enrichedData = (data || []).map(entry => ({
+            ...entry,
+            admin_name: entry.actor_id ? (adminMap[entry.actor_id] || 'Unknown Admin') : 'System'
+          }));
+          
+          setLog(enrichedData);
+        } else {
+          setLog((data || []).map(entry => ({ ...entry, admin_name: 'System' })));
+        }
       }
     } catch (err) {
       console.error('Exception fetching audit log:', err);
@@ -159,9 +182,9 @@ export default function AdminAudit() {
         <View style={styles.table}>
           <View style={[styles.tableRow, styles.tableHead]}>
             <Text style={[styles.cell, styles.headCell, { flex: 2.5 }]}>Action</Text>
-            <Text style={[styles.cell, styles.headCell]}>Type</Text>
-            <Text style={[styles.cell, styles.headCell, { flex: 1.5 }]}>Target ID</Text>
-            <Text style={[styles.cell, styles.headCell, { flex: 1.5 }]}>Date & Time</Text>
+            <Text style={[styles.cell, styles.headCell, { flex: 1.5 }]}>Admin</Text>
+            <Text style={[styles.cell, styles.headCell]}>Date</Text>
+            <Text style={[styles.cell, styles.headCell]}>Time</Text>
             <Text style={[styles.cell, styles.headCell]}></Text>
           </View>
           {loading ? (
@@ -182,20 +205,14 @@ export default function AdminAudit() {
                 <View style={[styles.actionDot, { backgroundColor: getActionColor(entry?.action) }]} />
                 <Text style={styles.actionCell} numberOfLines={1}>{entry?.action || '—'}</Text>
               </View>
-              <View style={styles.cell}>
-                <View style={styles.typeBadge}>
-                  <Text style={styles.typeBadgeText}>{entry?.target_type || '—'}</Text>
-                </View>
-              </View>
-              <Text style={[styles.cell, styles.idCell]} numberOfLines={1}>{entry?.target_id?.substring(0, 8) || '—'}</Text>
+              <Text style={[styles.cell, styles.adminCell, { flex: 1.5 }]} numberOfLines={1}>
+                {entry?.admin_name || 'System'}
+              </Text>
               <Text style={[styles.cell, styles.dateCell]}>
-                {entry?.created_at ? (
-                  <>
-                    {new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    {' '}
-                    {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                  </>
-                ) : '—'}
+                {entry?.created_at ? new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+              </Text>
+              <Text style={[styles.cell, styles.timeCell]}>
+                {entry?.created_at ? new Date(entry.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—'}
               </Text>
               <View style={styles.cell}>
                 <Ionicons name="chevron-forward" size={14} color="#B8AFA4" />
@@ -349,18 +366,9 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   actionCell: { fontWeight: '600', color: '#1A1611', flex: 1, fontSize: 14 },
-  typeBadge: { 
-    alignSelf: 'flex-start', 
-    backgroundColor: '#F5C842', 
-    paddingHorizontal: 10, 
-    paddingVertical: 4, 
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E8B830',
-  },
-  typeBadgeText: { fontSize: 11, fontWeight: '700', color: '#1A1611', letterSpacing: 0.3 },
-  idCell: { color: '#8A8070', fontSize: 11, fontFamily: 'monospace', letterSpacing: 0.5 },
+  adminCell: { color: '#5A5248', fontSize: 13, fontWeight: '500' },
   dateCell: { color: '#5A5248', fontSize: 12, fontWeight: '500' },
+  timeCell: { color: '#8A8070', fontSize: 12 },
   emptyRow: { padding: 32, alignItems: 'center', gap: 8 },
   emptyText: { color: '#8A8070', fontSize: 13 },
   

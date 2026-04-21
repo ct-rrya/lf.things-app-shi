@@ -1,0 +1,48 @@
+// PRINT-OPTIMIZED: Admin Dashboard Flow
+// Generate PDF: dot -Tpdf -Gdpi=300 print-10-admin-dashboard.dot -o admin-flow.pdf
+
+digraph AdminDashboard {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial Bold", fontsize=14, penwidth=2];
+    edge [fontname="Arial", fontsize=12, penwidth=2];
+    
+    start [label="Open Admin Panel", shape=ellipse, fillcolor=lightgreen];
+    end [label="End", shape=ellipse, fillcolor=pink];
+    
+    checkRole [label="Is Admin?", shape=diamond, fillcolor=lightyellow];
+    forbidden [label="403 Forbidden", fillcolor=lightcoral];
+    
+    loadDash [label="Load Dashboard"];
+    fetchStats [label="Fetch Statistics\n\n• Students\n• Items\n• Lost/Safe\n• Custody"];
+    
+    displayDash [label="Display Dashboard\n\nStats Cards\nRecent Activity\nAudit Summary"];
+    
+    userAction [label="Select Action", shape=diamond, fillcolor=lightyellow];
+    
+    students [label="Student\nManagement"];
+    items [label="Items\nManagement"];
+    custody [label="Custody Log"];
+    users [label="User\nManagement"];
+    audit [label="Audit Log"];
+    
+    start -> checkRole;
+    checkRole -> forbidden [label="No"];
+    forbidden -> end;
+    
+    checkRole -> loadDash [label="Yes"];
+    loadDash -> fetchStats;
+    fetchStats -> displayDash;
+    displayDash -> userAction;
+    
+    userAction -> students [label="Students"];
+    userAction -> items [label="Items"];
+    userAction -> custody [label="Custody"];
+    userAction -> users [label="Users"];
+    userAction -> audit [label="Audit"];
+    
+    students -> end;
+    items -> end;
+    custody -> end;
+    users -> end;
+    audit -> end;
+}

@@ -2,6 +2,18 @@
 
 This document contains Mermaid.js flowcharts for all major features in the LF (Lost & Found) application.
 
+## 🖨️ Need to Print These?
+
+For printing, use the **print-optimized Graphviz versions** instead:
+- Location: `docs/graphviz/print-*.dot`
+- Features: 40% larger fonts, 2x thicker lines, simplified labels
+- Best for: Printing, presentations, handouts
+- Guide: See `docs/PRINTING_FLOWCHARTS_GUIDE.md`
+
+**Quick Start**: Use `print-00-overview.dot` for a single-page overview perfect for printing!
+
+---
+
 ## 1. Authentication & Registration Flow
 
 ```mermaid

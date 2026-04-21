@@ -19,6 +19,9 @@ export default function AdminCustody() {
 
   useEffect(() => { fetchLog(); }, []);
 
+  // NOTE: If custody log is empty but items have status 'at_admin':
+  // Run database/auto-custody-log-trigger.sql in Supabase SQL Editor
+  // This creates a trigger that auto-logs custody changes + backfills existing items
   async function fetchLog() {
     setLoading(true);
     try {
@@ -169,8 +172,7 @@ export default function AdminCustody() {
             <Text style={[styles.cell, styles.headCell, { flex: 2 }]}>Item</Text>
             <Text style={[styles.cell, styles.headCell]}>Category</Text>
             <Text style={[styles.cell, styles.headCell]}>Action</Text>
-            <Text style={[styles.cell, styles.headCell]}>Shelf</Text>
-            <Text style={[styles.cell, styles.headCell, { flex: 1.5 }]}>Notes</Text>
+            <Text style={[styles.cell, styles.headCell, { flex: 2 }]}>Notes</Text>
             <Text style={[styles.cell, styles.headCell]}>Date</Text>
           </View>
           {loading ? (
@@ -186,7 +188,6 @@ export default function AdminCustody() {
                   <Text style={[styles.badgeText, { color: actionColor(entry.action) }]}>{entry.action}</Text>
                 </View>
               </View>
-              <Text style={[styles.cell, styles.subCell]}>{entry.shelf_tag || '—'}</Text>
               <Text style={[styles.cell, styles.notesCell]} numberOfLines={1}>{entry.notes || '—'}</Text>
               <Text style={[styles.cell, styles.subCell, { fontSize: 11 }]}>
                 {new Date(entry.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
@@ -338,7 +339,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase' 
   },
   nameCell: { flex: 2, fontWeight: '600', color: '#1A1611', fontSize: 14 },
-  notesCell: { flex: 1.5, color: '#5A5248', fontWeight: '500', fontSize: 12 },
+  notesCell: { flex: 2, color: '#5A5248', fontWeight: '500', fontSize: 12 },
   subCell: { color: '#8A8070', fontSize: 12 },
   badge: { 
     alignSelf: 'flex-start', 

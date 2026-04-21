@@ -1,0 +1,55 @@
+// PRINT-OPTIMIZED: AI Matching System Flow
+// Generate PDF: dot -Tpdf -Gdpi=300 print-05-ai-matching.dot -o ai-matching-flow.pdf
+
+digraph AIMatching {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial Bold", fontsize=14, penwidth=2];
+    edge [fontname="Arial", fontsize=12, penwidth=2];
+    
+    start [label="Found Item\nReported", shape=ellipse, fillcolor=lightgreen];
+    end1 [label="No Matches", shape=ellipse, fillcolor=pink];
+    end2 [label="Matches Found!", shape=ellipse, fillcolor=lightgreen];
+    
+    getLost [label="Get All\nLost Items"];
+    hasLost [label="Lost Items\nExist?", shape=diamond, fillcolor=lightyellow];
+    
+    loop [label="For Each\nLost Item"];
+    buildPrompt [label="Build AI Prompt\n\n• Found details\n• Lost details\n• Photos"];
+    
+    callAI [label="Call Google\nGemini API", fillcolor=lightcyan];
+    parseResponse [label="Parse JSON\nResponse"];
+    
+    validJSON [label="Valid?", shape=diamond, fillcolor=lightyellow];
+    checkScore [label="Score ≥ 60?", shape=diamond, fillcolor=lightyellow];
+    
+    addMatch [label="Add to\nMatches"];
+    moreItems [label="More Items?", shape=diamond, fillcolor=lightyellow];
+    
+    sortMatches [label="Sort by Score\n(Highest First)"];
+    saveMatches [label="Save Matches\nto Database"];
+    notify [label="Create\nNotifications"];
+    
+    start -> getLost;
+    getLost -> hasLost;
+    hasLost -> end1 [label="No"];
+    hasLost -> loop [label="Yes"];
+    
+    loop -> buildPrompt;
+    buildPrompt -> callAI;
+    callAI -> parseResponse;
+    parseResponse -> validJSON;
+    
+    validJSON -> moreItems [label="No"];
+    validJSON -> checkScore [label="Yes"];
+    
+    checkScore -> moreItems [label="No"];
+    checkScore -> addMatch [label="Yes"];
+    addMatch -> moreItems;
+    
+    moreItems -> loop [label="Yes"];
+    moreItems -> sortMatches [label="No"];
+    
+    sortMatches -> saveMatches;
+    saveMatches -> notify;
+    notify -> end2;
+}

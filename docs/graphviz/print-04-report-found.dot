@@ -1,0 +1,48 @@
+// PRINT-OPTIMIZED: Report Found Item Flow
+// Generate PDF: dot -Tpdf -Gdpi=300 print-04-report-found.dot -o report-found-flow.pdf
+
+digraph ReportFound {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial Bold", fontsize=14, penwidth=2];
+    edge [fontname="Arial", fontsize=12, penwidth=2];
+    
+    start [label="Report Found Item", shape=ellipse, fillcolor=lightgreen];
+    end [label="Done", shape=ellipse, fillcolor=lightgreen];
+    
+    selectCat [label="Select Category"];
+    fillForm [label="Fill Details\n\n• Description\n• Location\n• Photo (Required)"];
+    
+    validate [label="Valid?", shape=diamond, fillcolor=lightyellow];
+    error [label="Show Error", fillcolor=lightcoral];
+    
+    uploadPhoto [label="Upload Photo"];
+    saveFound [label="Save Found Item"];
+    
+    runAI [label="Run AI Matching\n\nCompare with\nLost Items"];
+    
+    matches [label="Matches\nFound?", shape=diamond, fillcolor=lightyellow];
+    
+    notifyOwners [label="Notify Potential\nOwners"];
+    noMatches [label="No Matches\n(Yet)"];
+    
+    success [label="Reported!\n\nAI Matching Active", fillcolor=lightgreen];
+    
+    start -> selectCat;
+    selectCat -> fillForm;
+    fillForm -> validate;
+    
+    validate -> error [label="No"];
+    error -> fillForm;
+    
+    validate -> uploadPhoto [label="Yes"];
+    uploadPhoto -> saveFound;
+    saveFound -> runAI;
+    
+    runAI -> matches;
+    matches -> notifyOwners [label="Yes"];
+    matches -> noMatches [label="No"];
+    
+    notifyOwners -> success;
+    noMatches -> success;
+    success -> end;
+}

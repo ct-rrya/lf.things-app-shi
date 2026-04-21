@@ -1,0 +1,54 @@
+// PRINT-OPTIMIZED: Match Review & Confirmation Flow
+// Generate PDF: dot -Tpdf -Gdpi=300 print-06-match-review.dot -o match-review-flow.pdf
+
+digraph MatchReview {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial Bold", fontsize=14, penwidth=2];
+    edge [fontname="Arial", fontsize=12, penwidth=2];
+    
+    start [label="Match Notification\nReceived", shape=ellipse, fillcolor=lightgreen];
+    end [label="Done", shape=ellipse, fillcolor=pink];
+    
+    tapNotif [label="Tap Notification"];
+    loadDetails [label="Load Found Item\n& Match Info"];
+    
+    display [label="Display Details\n\n• Photo\n• Description\n• Location\n• AI Score\n• AI Reasoning"];
+    
+    userDecision [label="User Decision", shape=diamond, fillcolor=lightyellow];
+    
+    confirm [label="CONFIRM MATCH"];
+    reject [label="REJECT MATCH"];
+    
+    updateConfirmed [label="Update Status:\nconfirmed"];
+    updateRejected [label="Update Status:\nrejected"];
+    
+    updateItems [label="Update Items\n\nLost: located\nFound: claimed"];
+    
+    checkThread [label="Chat Thread\nExists?", shape=diamond, fillcolor=lightyellow];
+    createThread [label="Create Chat\nThread"];
+    
+    navChat [label="Navigate to Chat"];
+    showDismissed [label="Match Dismissed"];
+    
+    start -> tapNotif;
+    tapNotif -> loadDetails;
+    loadDetails -> display;
+    display -> userDecision;
+    
+    userDecision -> confirm [label="Confirm"];
+    userDecision -> reject [label="Reject"];
+    userDecision -> end [label="Back"];
+    
+    reject -> updateRejected;
+    updateRejected -> showDismissed;
+    showDismissed -> end;
+    
+    confirm -> updateConfirmed;
+    updateConfirmed -> updateItems;
+    updateItems -> checkThread;
+    
+    checkThread -> createThread [label="No"];
+    checkThread -> navChat [label="Yes"];
+    createThread -> navChat;
+    navChat -> end;
+}

@@ -1,0 +1,59 @@
+// PRINT-OPTIMIZED: Chat/Messaging Flow
+// Generate PDF: dot -Tpdf -Gdpi=300 print-07-chat-messaging.dot -o chat-flow.pdf
+
+digraph ChatMessaging {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial Bold", fontsize=14, penwidth=2];
+    edge [fontname="Arial", fontsize=12, penwidth=2];
+    
+    start [label="Open Chat Tab", shape=ellipse, fillcolor=lightgreen];
+    end [label="Done", shape=ellipse, fillcolor=pink];
+    
+    fetchThreads [label="Fetch Chat Threads"];
+    hasThreads [label="Has Threads?", shape=diamond, fillcolor=lightyellow];
+    showEmpty [label="Empty State\n\nNo conversations yet"];
+    
+    displayList [label="Display Thread List\n\nWith real-time updates"];
+    selectThread [label="User Selects\nThread"];
+    
+    loadThread [label="Load Thread\nDetails"];
+    loadMessages [label="Load Messages"];
+    displayChat [label="Display Chat\n\nMessages\nInput field\nSend button"];
+    
+    subscribe [label="Subscribe to\nReal-time Updates"];
+    
+    userAction [label="User Action", shape=diamond, fillcolor=lightyellow];
+    
+    typeMessage [label="Type Message"];
+    sendBtn [label="Tap Send"];
+    validate [label="Not Empty?", shape=diamond, fillcolor=lightyellow];
+    
+    insertMsg [label="Insert Message\nto Database"];
+    updateThread [label="Update Thread\nlast_message"];
+    incrementUnread [label="Increment\nUnread Count"];
+    
+    start -> fetchThreads;
+    fetchThreads -> hasThreads;
+    hasThreads -> showEmpty [label="No"];
+    hasThreads -> displayList [label="Yes"];
+    showEmpty -> end;
+    
+    displayList -> selectThread;
+    selectThread -> loadThread;
+    loadThread -> loadMessages;
+    loadMessages -> displayChat;
+    displayChat -> subscribe;
+    subscribe -> userAction;
+    
+    userAction -> typeMessage [label="Type"];
+    userAction -> end [label="Back"];
+    
+    typeMessage -> sendBtn;
+    sendBtn -> validate;
+    validate -> displayChat [label="No"];
+    validate -> insertMsg [label="Yes"];
+    
+    insertMsg -> updateThread;
+    updateThread -> incrementUnread;
+    incrementUnread -> displayChat;
+}
