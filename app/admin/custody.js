@@ -25,19 +25,54 @@ export default function AdminCustody() {
   async function fetchLog() {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Try with foreign key first
+      let { data, error } = await supabase
         .from('custody_log')
-        .select('*, items(name, category)')
+        .select(`
+          *,
+          items!custody_log_item_id_fkey(name, category)
+        `)
         .order('created_at', { ascending: false })
         .limit(50);
       
-      if (error) {
-        console.error('Error fetching custody log:', error);
-        Alert.alert('Error', 'Failed to load custody log. Please try again.');
-        setLog([]);
-      } else {
-        setLog(data || []);
+      // Fallback if foreign key doesn't work
+      if (error && error.message.includes('relationship')) {
+        console.warn('Foreign key not found, using fallback query');
+        
+        const { data: basicLog, error: fallbackError } = await supabase
+          .from('custody_log')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        
+        if (fallbackError) throw fallbackError;
+        
+        // Manually fetch item details
+        if (basicLog && basicLog.length > 0) {
+          const itemIds = [...new Set(basicLog.map(entry => entry.item_id))];
+          
+          const { data: items } = await supabase
+            .from('items')
+            .select('id, name, category')
+            .in('id', itemIds);
+          
+          const itemsMap = {};
+          (items || []).forEach(item => {
+            itemsMap[item.id] = item;
+          });
+          
+          data = basicLog.map(entry => ({
+            ...entry,
+            items: itemsMap[entry.item_id] || null,
+          }));
+        } else {
+          data = basicLog;
+        }
+      } else if (error) {
+        throw error;
       }
+      
+      setLog(data || []);
     } catch (err) {
       console.error('Exception fetching custody log:', err);
       Alert.alert('Error', 'An unexpected error occurred while loading custody log.');

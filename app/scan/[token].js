@@ -34,24 +34,87 @@ export default function ScanPage() {
 
   async function fetchItem() {
     try {
+      console.log('🔍 Fetching item by token:', token);
+      
+      // Try to query by qr_code first (new items)
       let { data, error } = await supabase
         .from('items')
-        .select('id, name, description, category, status, user_id, photo_urls, owner_name, program, year_section, contact_phone, social_media')
-        .eq('qr_token', token)
+        .select(`
+          id,
+          name,
+          description,
+          category,
+          status,
+          user_id,
+          photo_urls,
+          qr_code,
+          metadata
+        `)
+        .eq('qr_code', token)
         .maybeSingle();
 
-      if (!data) {
+      // If not found and token looks like UUID, try by id (legacy items)
+      if (!data && token.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        console.log('🔄 Token is UUID, trying by id (legacy)...');
         ({ data, error } = await supabase
           .from('items')
-          .select('id, name, description, category, status, user_id, photo_urls, owner_name, program, year_section, contact_phone, social_media')
+          .select(`
+            id,
+            name,
+            description,
+            category,
+            status,
+            user_id,
+            photo_urls,
+            qr_code,
+            metadata
+          `)
           .eq('id', token)
           .maybeSingle());
       }
 
-      if (error) throw error;
-      setItem(data);
+      if (error) {
+        console.error('❌ Query error:', error);
+        throw error;
+      }
+
+      if (!data) {
+        console.log('❌ No item found with token:', token);
+        setItem(null);
+        return;
+      }
+
+      console.log('✅ Item found:', data.id);
+
+      // Fetch owner contact info from profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('contact_phone, address, social_media')
+        .eq('id', data.user_id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.warn('⚠️ Could not fetch profile:', profileError);
+      }
+
+      // Combine item data with owner info from metadata and profile
+      const enrichedItem = {
+        ...data,
+        // Owner info from metadata snapshot
+        owner_name: data.metadata?.owner_name || 'Unknown',
+        program: data.metadata?.program || 'N/A',
+        year_section: data.metadata?.year_section || 'N/A',
+        // Contact info from profiles table (current)
+        contact_phone: profile?.contact_phone || null,
+        social_media: profile?.social_media || null,
+        address: profile?.address || null,
+      };
+
+      console.log('✅ Enriched item data:', enrichedItem);
+      setItem(enrichedItem);
     } catch (error) {
-      console.error('Error fetching item:', error);
+      console.error('❌ Error fetching item:', error);
+      setItem(null);
     } finally {
       setLoading(false);
     }

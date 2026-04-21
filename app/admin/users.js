@@ -20,70 +20,113 @@ export default function AdminUsers() {
   async function fetchUsers() {
     setLoading(true);
     
-    // Get all profiles (signed-up users)
-    const { data: profilesData, error: profilesError } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (profilesError) {
-      console.error('Error fetching profiles:', profilesError);
-      setLoading(false);
-      return;
-    }
-
-    // Get all students
-    const { data: studentsData, error: studentsError } = await supabase
-      .from('students')
-      .select('*');
-    
-    if (studentsError) {
-      console.error('Error fetching students:', studentsError);
-    }
-
-    // Get all auth users to get their email addresses
-    const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
-    
-    if (authError) {
-      console.error('Error fetching auth users:', authError);
-    }
-
-    // Create maps for quick lookup
-    const authMap = {};
-    (authData?.users || []).forEach(authUser => {
-      authMap[authUser.id] = authUser.email;
-    });
-
-    const studentsMap = {};
-    (studentsData || []).forEach(student => {
-      studentsMap[student.student_id] = student;
-    });
-
-    // Transform the data
-    const combinedUsers = (profilesData || []).map(profile => {
-      const studentData = profile.student_id ? studentsMap[profile.student_id] : null;
-      const email = authMap[profile.id] || '—';
+    try {
+      // Get all profiles (signed-up users)
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      return {
-        auth_user_id: profile.id,
-        student_id: profile.student_id || 'N/A',
-        full_name: profile.display_name || studentData?.full_name || email.split('@')[0] || 'Unknown',
-        email: email,
-        program: studentData?.program || profile.program || '—',
-        year_level: studentData?.year_level || profile.year_level || '—',
-        section: studentData?.section || profile.section || '—',
-        status: studentData?.status || (profile.student_id ? 'unlinked' : 'no_record'),
-        created_at: profile.created_at,
-        is_linked: !!profile.student_id && !!studentData,
-        has_student_record: !!studentData,
-      };
-    });
+      if (profilesError) throw profilesError;
 
-    // Sort by creation date (newest first)
-    combinedUsers.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    
-    setUsers(combinedUsers);
-    setLoading(false);
+      // Get all students
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select('*');
+      
+      if (studentsError) {
+        console.error('Error fetching students:', studentsError);
+      }
+
+      // Get all auth users to get their email addresses
+      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) {
+        console.error('Error fetching auth users:', authError);
+      }
+
+      // Create maps for quick lookup
+      const authMap = {};
+      (authData?.users || []).forEach(authUser => {
+        authMap[authUser.id] = authUser.email;
+      });
+
+      // Create multiple lookup maps for students
+      const studentsByStudentId = {};
+      const studentsByEmail = {};
+      const studentsByAuthId = {};
+      
+      (studentsData || []).forEach(student => {
+        if (student.student_id) {
+          studentsByStudentId[student.student_id] = student;
+        }
+        if (student.email) {
+          studentsByEmail[student.email.toLowerCase()] = student;
+        }
+        // Only add to auth map if auth_user_id exists (column might not exist in older schemas)
+        if (student.auth_user_id) {
+          studentsByAuthId[student.auth_user_id] = student;
+        }
+      });
+
+      // Transform the data with proper linking logic
+      const combinedUsers = (profilesData || []).map(profile => {
+        const authEmail = authMap[profile.id];
+        
+        // Try to find student record using multiple strategies
+        let studentData = null;
+        
+        // Strategy 1: Match by student_id in profile
+        if (profile.student_id && studentsByStudentId[profile.student_id]) {
+          studentData = studentsByStudentId[profile.student_id];
+        }
+        
+        // Strategy 2: Match by email (profiles.full_name often stores email)
+        if (!studentData && profile.full_name && studentsByEmail[profile.full_name.toLowerCase()]) {
+          studentData = studentsByEmail[profile.full_name.toLowerCase()];
+        }
+        
+        // Strategy 3: Match by auth email
+        if (!studentData && authEmail && studentsByEmail[authEmail.toLowerCase()]) {
+          studentData = studentsByEmail[authEmail.toLowerCase()];
+        }
+        
+        // Strategy 4: Match by auth_user_id
+        if (!studentData && studentsByAuthId[profile.id]) {
+          studentData = studentsByAuthId[profile.id];
+        }
+        
+        // Determine display values
+        const displayEmail = authEmail || profile.full_name || '—';
+        const displayName = studentData?.full_name || profile.display_name || displayEmail.split('@')[0] || 'Unknown';
+        const displayStudentId = studentData?.student_id || profile.student_id || 'Not Linked';
+        
+        return {
+          auth_user_id: profile.id,
+          student_id: displayStudentId,
+          full_name: displayName,
+          email: displayEmail,
+          program: studentData?.program || profile.program || '—',
+          year_level: studentData?.year_level || profile.year_level || '—',
+          section: studentData?.section || profile.section || '—',
+          status: studentData ? (studentData.status || 'active') : 'unlinked',
+          created_at: profile.created_at,
+          is_linked: !!studentData,
+          has_student_record: !!studentData,
+          student_data: studentData, // Keep full student data for detail view
+        };
+      });
+
+      // Sort by creation date (newest first)
+      combinedUsers.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      
+      setUsers(combinedUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      Alert.alert('Error', 'Failed to load users: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
 
@@ -211,8 +254,13 @@ export default function AdminUsers() {
               onPress={() => setSelected(selected?.auth_user_id === u.auth_user_id ? null : u)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.cell, styles.idCell]}>{u.student_id}</Text>
-              <Text style={[styles.cell, styles.nameCell]} numberOfLines={1}>{u.full_name}</Text>
+              <Text style={[styles.cell, styles.idCell, !u.is_linked && { color: '#D97706' }]}>
+                {u.student_id}
+              </Text>
+              <Text style={[styles.cell, styles.nameCell]} numberOfLines={1}>
+                {u.full_name}
+                {u.is_linked && <Text style={styles.linkedBadge}> ✓</Text>}
+              </Text>
               <Text style={[styles.cell, styles.subCell]} numberOfLines={1}>{u.program || '—'}</Text>
               <Text style={[styles.cell, styles.subCell]}>{u.year_level || '—'}</Text>
               <Text style={[styles.cell, styles.subCell]}>{u.section || '—'}</Text>
@@ -246,15 +294,20 @@ export default function AdminUsers() {
             {[
               { label: 'Email', value: selected.email },
               { label: 'Student ID', value: selected.student_id },
+              { label: 'Program', value: selected.program },
               { label: 'Year Level', value: selected.year_level },
               { label: 'Section', value: selected.section },
-              { label: 'Status', value: selected.is_linked ? 'Linked to Student' : 'Not Linked' },
+              { label: 'Link Status', value: selected.is_linked ? 'Linked to Student ✓' : 'Not Linked' },
               { label: 'Auth User ID', value: selected.auth_user_id },
               { label: 'Registered', value: selected.created_at ? new Date(selected.created_at).toLocaleString() : '—' },
             ].map(({ label, value }) => (
               <View key={label} style={styles.detailRow}>
                 <Text style={styles.detailLabel}>{label}</Text>
-                <Text style={styles.detailValue} numberOfLines={1}>{value || '—'}</Text>
+                <Text style={[
+                  styles.detailValue, 
+                  label === 'Link Status' && !selected.is_linked && { color: '#D97706' },
+                  label === 'Link Status' && selected.is_linked && { color: '#43A047' }
+                ]} numberOfLines={1}>{value || '—'}</Text>
               </View>
             ))}
           </View>
@@ -262,7 +315,15 @@ export default function AdminUsers() {
             <View style={styles.warningBox}>
               <Ionicons name="warning-outline" size={16} color="#D97706" />
               <Text style={styles.warningText}>
-                This user is not linked to a student record. They may have signed up without being in the students database.
+                This user is not linked to a student record. They may have signed up without being in the students masterlist, or the linking failed. Use the "Sync Users" button to attempt automatic linking.
+              </Text>
+            </View>
+          )}
+          {selected.is_linked && selected.student_data && (
+            <View style={styles.successBox}>
+              <Ionicons name="checkmark-circle-outline" size={16} color="#43A047" />
+              <Text style={styles.successText}>
+                Successfully linked to student: {selected.student_data.full_name} ({selected.student_data.student_id})
               </Text>
             </View>
           )}
@@ -368,6 +429,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   nameCell: { flex: 2, fontWeight: '600', color: '#1A1611', minWidth: 140, fontSize: 14 },
+  linkedBadge: { color: '#43A047', fontWeight: '700', fontSize: 12 },
   emailCell: { flex: 1.5, color: '#5A5248', fontSize: 12, fontWeight: '500' },
   subCell: { color: '#8A8070', fontSize: 12 },
 
@@ -451,5 +513,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#92400E',
     lineHeight: 16,
+  },
+
+  // Success box
+  successBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#E8F5E9',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  successText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#2E7D32',
+    lineHeight: 16,
+    fontWeight: '600',
   },
 });

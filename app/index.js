@@ -14,12 +14,15 @@ import { showAlert, setWebAlertHandler } from '../lib/alert';
 export default function AuthScreen() {
   const [mode, setMode] = useState('login');
   const [studentId, setStudentId] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [middleName, setMiddleName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [program, setProgram] = useState('');
   const [yearLevel, setYearLevel] = useState('');
   const [section, setSection] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
@@ -37,15 +40,12 @@ export default function AuthScreen() {
   }, []);
 
   useEffect(() => {
-    // Fade in the auth screen
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
-      delay: 2200, // Start fading in before splash disappears
-      useNativeDriver: Platform.OS !== 'web', // Only use native driver on mobile
+      delay: 2200,
+      useNativeDriver: Platform.OS !== 'web',
     }).start();
-
-    // Hide splash after fade completes
     const t = setTimeout(() => setShowSplash(false), 2800);
     return () => clearTimeout(t);
   }, []);
@@ -53,24 +53,22 @@ export default function AuthScreen() {
   if (showSplash) return <SplashScreen />;
 
   async function handleSignIn() {
-    // Validate email
     if (!email.trim()) {
       showAlert('Email Required', 'Please enter your email address to sign in');
       return;
     }
     
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      showAlert('Invalid Email', 'Please enter a valid email address (e.g., name@example.com)');
+      showAlert('Invalid Email', 'Please enter a valid email address');
       return;
     }
     
-    // Validate password
     if (!password) {
-      showAlert('Password Required', 'Please enter your password to sign in');
+      showAlert('Password Required', 'Please enter your password');
       return;
     }
+    
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -91,7 +89,7 @@ export default function AuthScreen() {
   }
 
   async function handleSignUp() {
-    // Validate terms acceptance
+    // Validate terms
     if (!termsAccepted) {
       showAlert('Terms Required', 'Please accept the Terms & Conditions to continue');
       setShowTerms(true);
@@ -100,13 +98,25 @@ export default function AuthScreen() {
     
     // Validate student ID
     if (!studentId.trim()) {
-      showAlert('Student ID Required', 'Please enter your Student ID (e.g., 21-12345)');
+      showAlert('Student ID Required', 'Please enter your Student ID');
       return;
     }
     
-    // Validate full name
-    if (!fullName.trim()) {
-      showAlert('Full Name Required', 'Please enter your full name');
+    // Validate student ID format (7-8 digits, numbers only)
+    const studentIdPattern = /^\d{7,8}$/;
+    if (!studentIdPattern.test(studentId.trim())) {
+      showAlert('Invalid Student ID Format', 'Student ID must be 7-8 digits (numbers only). Example: 8230123');
+      return;
+    }
+    
+    // Validate names
+    if (!firstName.trim()) {
+      showAlert('First Name Required', 'Please enter your first name');
+      return;
+    }
+    
+    if (!lastName.trim()) {
+      showAlert('Last Name Required', 'Please enter your last name');
       return;
     }
     
@@ -116,10 +126,9 @@ export default function AuthScreen() {
       return;
     }
     
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      showAlert('Invalid Email', 'Please enter a valid email address (e.g., name@example.com)');
+      showAlert('Invalid Email', 'Please enter a valid email address');
       return;
     }
     
@@ -141,36 +150,59 @@ export default function AuthScreen() {
     }
     
     if (password.length < 6) {
-      showAlert('Password Too Short', 'Password must be at least 6 characters long for security');
+      showAlert('Password Too Short', 'Password must be at least 6 characters');
       return;
     }
+    
     setLoading(true);
     try {
+      // Clean and prepare student ID
+      const cleanStudentId = studentId.trim();
+      
+      // Debug logging
+      console.log('=== STUDENT ID LOOKUP DEBUG ===');
+      console.log('Searching for:', cleanStudentId);
+      console.log('Length:', cleanStudentId.length);
+      console.log('Type:', typeof cleanStudentId);
+      
       // Verify student ID in master list
       const { data: student, error: lookupErr } = await supabase
         .from('students')
-        .select('student_id, status, auth_user_id')
-        .eq('student_id', studentId.trim())
+        .select('student_id, first_name, last_name, email, program, year_level, section, status, auth_user_id')
+        .eq('student_id', cleanStudentId)
         .maybeSingle();
 
-      console.log('Student lookup:', { student, lookupErr });
+      console.log('Query result:', { 
+        found: !!student, 
+        studentId: student?.student_id,
+        error: lookupErr?.message 
+      });
+      console.log('================================');
 
       if (lookupErr) {
         console.error('Lookup error:', lookupErr);
-        showAlert('Database Error', lookupErr.message);
+        showAlert('Database Error', `Failed to verify student ID: ${lookupErr.message}`);
         setLoading(false);
         return;
       }
       
       if (!student) {
+        // Debug: Try to find similar IDs
+        const { data: sampleStudents } = await supabase
+          .from('students')
+          .select('student_id')
+          .limit(5);
+        
+        console.log('Sample student IDs in database:', sampleStudents?.map(s => s.student_id));
+        
         showAlert('Not in the System',
-          'Your Student ID was not found. Contact the Student Affairs Office.');
+          `Student ID "${cleanStudentId}" was not found in our records.\n\nPlease verify your Student ID and contact the Student Affairs Office if this is incorrect.`);
         setLoading(false);
         return;
       }
       
       if (student.status !== 'active') {
-        showAlert('Inactive', 'Your student record is inactive. Contact the Student Affairs Office.');
+        showAlert('Inactive Account', 'Your student record is inactive. Contact the Student Affairs Office.');
         setLoading(false);
         return;
       }
@@ -182,87 +214,92 @@ export default function AuthScreen() {
         return;
       }
 
+      // Verify email matches the student record (if email exists in masterlist)
+      if (student.email && student.email.toLowerCase() !== email.trim().toLowerCase()) {
+        showAlert('Email Mismatch', 
+          `The email you entered doesn't match our records.\n\nPlease use: ${student.email}`);
+        setLoading(false);
+        return;
+      }
+
       // Create auth account
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         password,
         options: {
           data: {
-            student_id: studentId.trim(),
-            name: fullName.trim(),
+            student_id: cleanStudentId,
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
             program: program,
             year_level: yearLevel,
             section: section.trim() || null,
           },
-          emailRedirectTo: undefined,
         },
       });
       
       if (error) throw error;
 
-      console.log('Auth signup result:', data);
+      console.log('Auth signup successful:', data.user?.id);
 
-      // Link auth account to student record
+      // Update students table with auth_user_id
       if (data.user) {
-        console.log('Linking user:', data.user.id, 'to student:', studentId.trim());
-        
-        // Call the link function to update the students table
-        const { data: linkResult, error: linkError } = await supabase.rpc(
-          'link_student_account',
-          {
-            p_student_id: studentId.trim(),
-            p_auth_user_id: data.user.id,
-            p_email: email.trim(),
-            p_full_name: fullName.trim(),
-            p_program: program,
-            p_year_level: yearLevel,
-            p_section: section.trim() || null,
-          }
-        );
+        const { error: updateError } = await supabase
+          .from('students')
+          .update({ 
+            auth_user_id: data.user.id,
+            email: email.trim().toLowerCase(),
+            phone_number: phoneNumber.trim() || null,
+          })
+          .eq('student_id', cleanStudentId);
 
-        if (linkError) {
-          console.error('Failed to link student account:', linkError);
-          showAlert(
-            'Linking Error',
-            linkError.message || 'Failed to link your account to student record. Please contact support.'
-          );
-          setLoading(false);
-          return;
-        }
-        
-        if (!linkResult) {
-          showAlert(
-            'Already Linked',
-            'This student ID is already linked to another account.'
-          );
+        if (updateError) {
+          console.error('Failed to link student account:', updateError);
+          showAlert('Linking Error', 
+            `Account created but failed to link: ${updateError.message}\n\nPlease contact support.`);
           setLoading(false);
           return;
         }
 
-        // Create profile record with display_name
-        await supabase.from('profiles').upsert({
-          id: data.user.id,
-          display_name: fullName.trim(),
-          avatar_seed: studentId.trim(),
-          student_id: studentId.trim(),
-          program: program,
-          year_level: yearLevel,
-          section: section.trim() || null,
-        });
+        // Create/Update profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: data.user.id,
+            full_name: email.trim().toLowerCase(),
+            display_name: `${firstName.trim()} ${lastName.trim()}`,
+            student_id: cleanStudentId,
+            program: program,
+            year_level: yearLevel,
+            section: section.trim() || null,
+            avatar_seed: cleanStudentId,
+          });
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          // Don't fail the whole process for profile error
+        }
       }
 
-      showAlert('Account Created', 'You can now sign in with your email and password.');
-      setMode('login');
-      setStudentId('');
-      setFullName('');
-      setEmail('');
-      setPassword('');
-      setProgram('');
-      setYearLevel('');
-      setSection('');
+      showAlert('Account Created!', 'You can now sign in with your email and password.', [
+        { text: 'Sign In', onPress: () => {
+          setMode('login');
+          setStudentId('');
+          setFirstName('');
+          setLastName('');
+          setMiddleName('');
+          setEmail('');
+          setPassword('');
+          setProgram('');
+          setYearLevel('');
+          setSection('');
+          setPhoneNumber('');
+        }}
+      ]);
+      
     } catch (err) {
       console.error('Signup error:', err);
-      showAlert('Error', err.message);
+      showAlert('Sign Up Failed', err.message);
     } finally {
       setLoading(false);
     }
@@ -336,15 +373,16 @@ export default function AuthScreen() {
               {/* Student ID — sign up only */}
               {!isLogin && (
                 <View style={styles.formGroup}>
-                  <Text style={styles.inputLabel}>STUDENT ID</Text>
+                  <Text style={styles.inputLabel}>STUDENT ID *</Text>
                   <View style={styles.inputWrap}>
                     <Ionicons name="card-outline" size={15} color="rgba(69,53,75,0.35)" style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
-                      placeholder="e.g. 21-12345"
+                      placeholder="e.g. 8230123"
                       placeholderTextColor="rgba(69,53,75,0.35)"
                       value={studentId}
                       onChangeText={setStudentId}
+                      keyboardType="numeric"
                       autoCapitalize="none"
                       autoCorrect={false}
                     />
@@ -352,18 +390,54 @@ export default function AuthScreen() {
                 </View>
               )}
 
-              {/* Full Name — sign up only */}
+              {/* First Name — sign up only */}
               {!isLogin && (
                 <View style={styles.formGroup}>
-                  <Text style={styles.inputLabel}>FULL NAME</Text>
+                  <Text style={styles.inputLabel}>FIRST NAME *</Text>
                   <View style={styles.inputWrap}>
                     <Ionicons name="person-outline" size={15} color="rgba(69,53,75,0.35)" style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
-                      placeholder="Juan Dela Cruz"
+                      placeholder="Juan"
                       placeholderTextColor="rgba(69,53,75,0.35)"
-                      value={fullName}
-                      onChangeText={setFullName}
+                      value={firstName}
+                      onChangeText={setFirstName}
+                      autoCorrect={false}
+                    />
+                  </View>
+                </View>
+              )}
+
+              {/* Last Name — sign up only */}
+              {!isLogin && (
+                <View style={styles.formGroup}>
+                  <Text style={styles.inputLabel}>LAST NAME *</Text>
+                  <View style={styles.inputWrap}>
+                    <Ionicons name="person-outline" size={15} color="rgba(69,53,75,0.35)" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Dela Cruz"
+                      placeholderTextColor="rgba(69,53,75,0.35)"
+                      value={lastName}
+                      onChangeText={setLastName}
+                      autoCorrect={false}
+                    />
+                  </View>
+                </View>
+              )}
+
+              {/* Middle Name — sign up only (optional) */}
+              {!isLogin && (
+                <View style={styles.formGroup}>
+                  <Text style={styles.inputLabel}>MIDDLE NAME (OPTIONAL)</Text>
+                  <View style={styles.inputWrap}>
+                    <Ionicons name="person-outline" size={15} color="rgba(69,53,75,0.35)" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Optional"
+                      placeholderTextColor="rgba(69,53,75,0.35)"
+                      value={middleName}
+                      onChangeText={setMiddleName}
                       autoCorrect={false}
                     />
                   </View>
@@ -372,12 +446,12 @@ export default function AuthScreen() {
 
               {/* Email — both modes */}
               <View style={styles.formGroup}>
-                <Text style={styles.inputLabel}>EMAIL</Text>
+                <Text style={styles.inputLabel}>EMAIL *</Text>
                 <View style={styles.inputWrap}>
                   <Ionicons name="mail-outline" size={15} color="rgba(69,53,75,0.35)" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
-                    placeholder="your@email.com"
+                    placeholder="your@ctu.edu.ph"
                     placeholderTextColor="rgba(69,53,75,0.35)"
                     value={email}
                     onChangeText={setEmail}
@@ -388,10 +462,29 @@ export default function AuthScreen() {
                 </View>
               </View>
 
+              {/* Phone Number — sign up only (optional) */}
+              {!isLogin && (
+                <View style={styles.formGroup}>
+                  <Text style={styles.inputLabel}>PHONE NUMBER (OPTIONAL)</Text>
+                  <View style={styles.inputWrap}>
+                    <Ionicons name="call-outline" size={15} color="rgba(69,53,75,0.35)" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="09123456789"
+                      placeholderTextColor="rgba(69,53,75,0.35)"
+                      value={phoneNumber}
+                      onChangeText={setPhoneNumber}
+                      keyboardType="phone-pad"
+                      autoCorrect={false}
+                    />
+                  </View>
+                </View>
+              )}
+
               {/* Program — sign up only */}
               {!isLogin && (
                 <View style={styles.formGroup}>
-                  <Text style={styles.inputLabel}>PROGRAM</Text>
+                  <Text style={styles.inputLabel}>PROGRAM *</Text>
                   <View style={styles.pickerContainer}>
                     {CTU_PROGRAMS.map((prog) => (
                       <TouchableOpacity
@@ -420,7 +513,7 @@ export default function AuthScreen() {
               {/* Year Level — sign up only */}
               {!isLogin && (
                 <View style={styles.formGroup}>
-                  <Text style={styles.inputLabel}>YEAR LEVEL</Text>
+                  <Text style={styles.inputLabel}>YEAR LEVEL *</Text>
                   <View style={styles.pickerContainer}>
                     {CTU_YEAR_LEVELS.map((year) => (
                       <TouchableOpacity
@@ -446,7 +539,7 @@ export default function AuthScreen() {
                 </View>
               )}
 
-              {/* Section — sign up only */}
+              {/* Section — sign up only (optional) */}
               {!isLogin && (
                 <View style={styles.formGroup}>
                   <Text style={styles.inputLabel}>SECTION (OPTIONAL)</Text>
@@ -466,7 +559,7 @@ export default function AuthScreen() {
 
               {/* Password — both modes */}
               <View style={styles.formGroup}>
-                <Text style={styles.inputLabel}>PASSWORD</Text>
+                <Text style={styles.inputLabel}>PASSWORD *</Text>
                 <View style={styles.inputWrap}>
                   <Ionicons name="lock-closed-outline" size={15} color="rgba(69,53,75,0.35)" style={styles.inputIcon} />
                   <TextInput
@@ -528,7 +621,7 @@ export default function AuthScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* ── TERMS & CONDITIONS MODAL ── */}
+        {/* ── TERMS & CONDITIONS MODAL ── */}
       <Modal visible={showTerms} transparent animationType="slide" onRequestClose={() => setShowTerms(false)}>
         <View style={styles.termsOverlay}>
           <View style={styles.termsModal}>
@@ -670,6 +763,7 @@ export default function AuthScreen() {
     </Animated.View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.grape },

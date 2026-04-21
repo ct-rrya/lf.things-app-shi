@@ -51,7 +51,8 @@ export default function AdminItems() {
           created_at,
           student_id,
           students:student_id (
-            full_name,
+            first_name,
+            last_name,
             program,
             year_level,
             section
@@ -71,7 +72,9 @@ export default function AdminItems() {
         // Transform the data to flatten the students object
         const transformedData = (data || []).map(item => ({
           ...item,
-          owner_name: item.students?.full_name || 'Unknown',
+          owner_name: item.students 
+            ? `${item.students.first_name || ''} ${item.students.last_name || ''}`.trim() || 'Unknown'
+            : 'Unknown',
           program: item.students?.program || '—',
           year_section: item.students?.year_level && item.students?.section 
             ? `${item.students.year_level}-${item.students.section}`

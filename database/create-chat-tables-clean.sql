@@ -1,19 +1,30 @@
 -- ============================================================================
--- CHAT SYSTEM TABLES
+-- CHAT SYSTEM TABLES - CLEAN MIGRATION
 -- ============================================================================
--- Creates tables for owner-finder communication via chat
+-- This script will DROP existing chat tables and create fresh ones
+-- WARNING: This will delete all existing chat data!
 -- Run this in Supabase SQL Editor
 -- ============================================================================
 
--- Drop existing tables if you need to recreate (CAUTION: This deletes data!)
--- DROP TABLE IF EXISTS chat_messages CASCADE;
--- DROP TABLE IF EXISTS chat_threads CASCADE;
+-- ============================================================================
+-- STEP 1: DROP EXISTING TABLES (if they exist)
+-- ============================================================================
+
+-- Drop dependent objects first
+DROP VIEW IF EXISTS chat_threads_with_info CASCADE;
+DROP TRIGGER IF EXISTS trigger_update_thread_on_message ON chat_messages;
+DROP TRIGGER IF EXISTS update_thread_on_message ON chat_messages;
+DROP FUNCTION IF EXISTS update_chat_thread_timestamp() CASCADE;
+
+-- Drop tables (CASCADE will drop all dependent objects)
+DROP TABLE IF EXISTS chat_messages CASCADE;
+DROP TABLE IF EXISTS chat_threads CASCADE;
 
 -- ============================================================================
--- 1. CHAT THREADS TABLE
+-- STEP 2: CREATE CHAT THREADS TABLE
 -- ============================================================================
--- Represents a conversation between an item owner and a finder
-CREATE TABLE IF NOT EXISTS chat_threads (
+
+CREATE TABLE chat_threads (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   item_id UUID NOT NULL REFERENCES items(id) ON DELETE CASCADE,
   owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -26,6 +37,7 @@ CREATE TABLE IF NOT EXISTS chat_threads (
   UNIQUE(item_id, finder_id)
 );
 
+-- Add comments
 COMMENT ON TABLE chat_threads IS 'Chat conversations between item owners and finders';
 COMMENT ON COLUMN chat_threads.item_id IS 'The item being discussed';
 COMMENT ON COLUMN chat_threads.owner_id IS 'The owner of the item';
@@ -33,10 +45,10 @@ COMMENT ON COLUMN chat_threads.finder_id IS 'The person who found/scanned the it
 COMMENT ON COLUMN chat_threads.status IS 'active: ongoing, resolved: item returned, archived: closed';
 
 -- ============================================================================
--- 2. CHAT MESSAGES TABLE
+-- STEP 3: CREATE CHAT MESSAGES TABLE
 -- ============================================================================
--- Individual messages within a chat thread
-CREATE TABLE IF NOT EXISTS chat_messages (
+
+CREATE TABLE chat_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   thread_id UUID NOT NULL REFERENCES chat_threads(id) ON DELETE CASCADE,
   sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -45,21 +57,40 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
+-- Add comments
 COMMENT ON TABLE chat_messages IS 'Individual messages in chat threads';
 COMMENT ON COLUMN chat_messages.is_read IS 'Whether the recipient has read this message';
 
 -- ============================================================================
--- 3. ROW LEVEL SECURITY (RLS) POLICIES
+-- STEP 4: CREATE INDEXES
 -- ============================================================================
 
--- Enable RLS on both tables
+-- Indexes on chat_threads
+CREATE INDEX idx_chat_threads_owner_id ON chat_threads(owner_id);
+CREATE INDEX idx_chat_threads_finder_id ON chat_threads(finder_id);
+CREATE INDEX idx_chat_threads_item_id ON chat_threads(item_id);
+CREATE INDEX idx_chat_threads_status ON chat_threads(status);
+CREATE INDEX idx_chat_threads_updated_at ON chat_threads(updated_at DESC);
+
+-- Indexes on chat_messages
+CREATE INDEX idx_chat_messages_thread_id ON chat_messages(thread_id);
+CREATE INDEX idx_chat_messages_sender_id ON chat_messages(sender_id);
+CREATE INDEX idx_chat_messages_created_at ON chat_messages(created_at DESC);
+CREATE INDEX idx_chat_messages_is_read ON chat_messages(is_read) WHERE is_read = FALSE;
+CREATE INDEX idx_chat_messages_thread_unread ON chat_messages(thread_id, is_read) WHERE is_read = FALSE;
+
+-- ============================================================================
+-- STEP 5: ENABLE ROW LEVEL SECURITY
+-- ============================================================================
+
 ALTER TABLE chat_threads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
 
--- ── CHAT THREADS POLICIES ──
+-- ============================================================================
+-- STEP 6: CREATE RLS POLICIES FOR CHAT_THREADS
+-- ============================================================================
 
--- Users can view threads they are part of (owner or finder)
-DROP POLICY IF EXISTS "Users can view their chat threads" ON chat_threads;
+-- Users can view threads they are part of
 CREATE POLICY "Users can view their chat threads"
   ON chat_threads FOR SELECT
   USING (
@@ -67,8 +98,7 @@ CREATE POLICY "Users can view their chat threads"
     auth.uid() = finder_id
   );
 
--- Users can create threads (finder initiates, owner is set automatically)
-DROP POLICY IF EXISTS "Users can create chat threads" ON chat_threads;
+-- Users can create threads
 CREATE POLICY "Users can create chat threads"
   ON chat_threads FOR INSERT
   WITH CHECK (
@@ -76,8 +106,7 @@ CREATE POLICY "Users can create chat threads"
     auth.uid() = owner_id
   );
 
--- Participants can update thread status (mark as resolved/archived)
-DROP POLICY IF EXISTS "Participants can update thread status" ON chat_threads;
+-- Participants can update thread status
 CREATE POLICY "Participants can update thread status"
   ON chat_threads FOR UPDATE
   USING (
@@ -89,10 +118,11 @@ CREATE POLICY "Participants can update thread status"
     auth.uid() = finder_id
   );
 
--- ── CHAT MESSAGES POLICIES ──
+-- ============================================================================
+-- STEP 7: CREATE RLS POLICIES FOR CHAT_MESSAGES
+-- ============================================================================
 
--- Users can view messages in threads they are part of
-DROP POLICY IF EXISTS "Users can view messages in their threads" ON chat_messages;
+-- Users can view messages in their threads
 CREATE POLICY "Users can view messages in their threads"
   ON chat_messages FOR SELECT
   USING (
@@ -106,8 +136,7 @@ CREATE POLICY "Users can view messages in their threads"
     )
   );
 
--- Users can send messages in threads they are part of
-DROP POLICY IF EXISTS "Users can send messages in their threads" ON chat_messages;
+-- Users can send messages in their threads
 CREATE POLICY "Users can send messages in their threads"
   ON chat_messages FOR INSERT
   WITH CHECK (
@@ -123,7 +152,6 @@ CREATE POLICY "Users can send messages in their threads"
   );
 
 -- Users can mark messages as read in their threads
-DROP POLICY IF EXISTS "Users can update message read status" ON chat_messages;
 CREATE POLICY "Users can update message read status"
   ON chat_messages FOR UPDATE
   USING (
@@ -147,14 +175,11 @@ CREATE POLICY "Users can update message read status"
     )
   );
 
--- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_chat_threads_owner_id ON chat_threads(owner_id);
-CREATE INDEX IF NOT EXISTS idx_chat_threads_finder_id ON chat_threads(finder_id);
-CREATE INDEX IF NOT EXISTS idx_chat_threads_item_id ON chat_threads(item_id);
-CREATE INDEX IF NOT EXISTS idx_chat_messages_thread_id ON chat_messages(thread_id);
-CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at DESC);
+-- ============================================================================
+-- STEP 8: CREATE TRIGGER FUNCTION
+-- ============================================================================
 
--- Function to update updated_at timestamp
+-- Function to update thread's updated_at timestamp when new message is sent
 CREATE OR REPLACE FUNCTION update_chat_thread_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -163,38 +188,16 @@ BEGIN
   WHERE id = NEW.thread_id;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger to update thread timestamp when new message is sent
-DROP TRIGGER IF EXISTS update_thread_on_message ON chat_messages;
-CREATE TRIGGER update_thread_on_message
+-- Trigger to update thread timestamp on new message
+CREATE TRIGGER trigger_update_thread_on_message
   AFTER INSERT ON chat_messages
   FOR EACH ROW
   EXECUTE FUNCTION update_chat_thread_timestamp();
 
 -- ============================================================================
--- 4. ADDITIONAL INDEXES FOR PERFORMANCE
--- ============================================================================
-
--- Additional indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_chat_threads_status 
-  ON chat_threads(status);
-  
-CREATE INDEX IF NOT EXISTS idx_chat_threads_updated_at 
-  ON chat_threads(updated_at DESC);
-
-CREATE INDEX IF NOT EXISTS idx_chat_messages_sender_id 
-  ON chat_messages(sender_id);
-  
-CREATE INDEX IF NOT EXISTS idx_chat_messages_is_read 
-  ON chat_messages(is_read) WHERE is_read = FALSE;
-
--- Composite index for unread message counts
-CREATE INDEX IF NOT EXISTS idx_chat_messages_thread_unread 
-  ON chat_messages(thread_id, is_read) WHERE is_read = FALSE;
-
--- ============================================================================
--- 5. HELPER VIEWS (OPTIONAL)
+-- STEP 9: CREATE HELPER VIEW
 -- ============================================================================
 
 -- View to get thread info with latest message and unread count
@@ -237,34 +240,58 @@ WHERE t.owner_id = auth.uid() OR t.finder_id = auth.uid();
 COMMENT ON VIEW chat_threads_with_info IS 'Chat threads with item info, last message, and unread count';
 
 -- ============================================================================
--- VERIFICATION QUERIES
+-- STEP 10: VERIFICATION
 -- ============================================================================
 
--- Run these to verify the tables were created successfully:
-
--- Check tables exist
--- SELECT table_name FROM information_schema.tables 
--- WHERE table_schema = 'public' 
--- AND table_name IN ('chat_threads', 'chat_messages');
-
--- Check RLS is enabled
--- SELECT tablename, rowsecurity 
--- FROM pg_tables 
--- WHERE schemaname = 'public' 
--- AND tablename IN ('chat_threads', 'chat_messages');
-
--- Check indexes
--- SELECT indexname, tablename 
--- FROM pg_indexes 
--- WHERE schemaname = 'public' 
--- AND tablename IN ('chat_threads', 'chat_messages');
+-- Verify tables were created
+DO $$
+DECLARE
+  thread_count INTEGER;
+  message_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO thread_count
+  FROM information_schema.tables 
+  WHERE table_schema = 'public' 
+  AND table_name = 'chat_threads';
+  
+  SELECT COUNT(*) INTO message_count
+  FROM information_schema.tables 
+  WHERE table_schema = 'public' 
+  AND table_name = 'chat_messages';
+  
+  IF thread_count = 1 AND message_count = 1 THEN
+    RAISE NOTICE '✅ SUCCESS: Chat tables created successfully!';
+    RAISE NOTICE '   - chat_threads: Created';
+    RAISE NOTICE '   - chat_messages: Created';
+    RAISE NOTICE '   - RLS policies: Enabled';
+    RAISE NOTICE '   - Indexes: Created';
+    RAISE NOTICE '   - Triggers: Active';
+  ELSE
+    RAISE EXCEPTION '❌ ERROR: Tables were not created properly';
+  END IF;
+END $$;
 
 -- ============================================================================
 -- DONE!
 -- ============================================================================
--- Tables created: chat_threads, chat_messages
--- RLS policies: Enabled and configured
--- Indexes: Created for optimal performance
--- Triggers: Auto-update thread timestamp on new message
--- View: chat_threads_with_info for easy querying
+-- Run these queries to verify everything is working:
+--
+-- 1. Check tables exist:
+--    SELECT table_name FROM information_schema.tables 
+--    WHERE table_schema = 'public' 
+--    AND table_name IN ('chat_threads', 'chat_messages');
+--
+-- 2. Check RLS is enabled:
+--    SELECT tablename, rowsecurity 
+--    FROM pg_tables 
+--    WHERE schemaname = 'public' 
+--    AND tablename IN ('chat_threads', 'chat_messages');
+--
+-- 3. Check indexes:
+--    SELECT indexname FROM pg_indexes 
+--    WHERE schemaname = 'public' 
+--    AND tablename IN ('chat_threads', 'chat_messages');
+--
+-- 4. Test the view:
+--    SELECT * FROM chat_threads_with_info LIMIT 1;
 -- ============================================================================

@@ -8,14 +8,25 @@ import { supabaseAdmin as supabase } from '../../lib/supabaseAdmin';
 import { CTU_PROGRAMS, CTU_YEAR_LEVELS } from '../../lib/ctuConstants';
 import { logStudentChange, AuditActions } from '../../lib/auditLog';
 
-const EMPTY_FORM = { student_id: '', full_name: '', email: '', program: '', year_level: '', section: '' };
+// UPDATED: Removed full_name, changed year_level to year_level (keep as is)
+const EMPTY_FORM = { 
+  student_id: '', 
+  first_name: '', 
+  last_name: '', 
+  middle_name: '',
+  email: '', 
+  program: '', 
+  year_level: '', 
+  section: '',
+  phone_number: ''
+};
 
 export default function AdminStudents() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterProgram, setFilterProgram] = useState('');
-  const [filterStatus, setFilterStatus] = useState('active');
+  const [filterStatus, setFilterStatus] = useState(''); // Show all by default
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -25,14 +36,14 @@ export default function AdminStudents() {
   const [csvErrors, setCsvErrors] = useState([]);
   const [importing, setImporting] = useState(false);
 
-  const [confirm, setConfirm] = useState(null); // { message, onConfirm }
+  const [confirm, setConfirm] = useState(null);
 
   useEffect(() => { fetchStudents(); }, [filterProgram, filterStatus]);
 
   async function fetchStudents() {
     setLoading(true);
     try {
-      let query = supabase.from('students').select('*').order('full_name');
+      let query = supabase.from('students').select('*').order('last_name');
       if (filterStatus) query = query.eq('status', filterStatus);
       if (filterProgram) query = query.eq('program', filterProgram);
       const { data, error } = await query;
@@ -45,37 +56,43 @@ export default function AdminStudents() {
     }
   }
 
-  const filtered = students.filter(s =>
-    s.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    s.student_id.includes(search)
-  );
+  // UPDATED: Search by first_name + last_name
+  const filtered = students.filter(s => {
+    const fullName = `${s.first_name} ${s.last_name}`.toLowerCase();
+    return fullName.includes(search.toLowerCase()) ||
+      s.student_id.includes(search);
+  });
 
-  // ── Add single student ────────────────────────────────────────
+  // UPDATED: Handle add student with new schema
   async function handleAddStudent() {
-    if (!form.student_id || !form.full_name || !form.program || !form.year_level) {
-      Alert.alert('Missing Fields', 'Student ID, Full Name, Program and Year Level are required.');
+    if (!form.student_id || !form.first_name || !form.last_name || !form.program || !form.year_level) {
+      Alert.alert('Missing Fields', 'Student ID, First Name, Last Name, Program and Year Level are required.');
       return;
     }
     setSaving(true);
     try {
       const studentData = {
-        ...form,
         student_id: form.student_id.trim(),
-        full_name: form.full_name.trim(),
-        email: form.email.trim() || null,
-        section: form.section.trim() || null,
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim(),
+        middle_name: form.middle_name.trim() || null,
+        email: form.email.trim(),
+        program: form.program,
+        year_level: form.year_level,
+        section: form.section.trim(),
+        phone_number: form.phone_number.trim() || null,
+        status: 'active',
       };
       
       const { data, error } = await supabase.from('students').insert([studentData]).select().single();
       if (error) throw error;
       
-      // Log audit trail
       await logStudentChange(AuditActions.STUDENT_ADDED, data.student_id, null, studentData);
       
       setShowAddModal(false);
       setForm(EMPTY_FORM);
       fetchStudents();
-      Alert.alert('Success', `${form.full_name} has been added to the master list.`);
+      Alert.alert('Success', `${form.first_name} ${form.last_name} has been added to the master list.`);
     } catch (err) {
       Alert.alert('Error', err.message.includes('unique') ? 'Student ID already exists.' : err.message);
     } finally {
@@ -83,11 +100,11 @@ export default function AdminStudents() {
     }
   }
 
-  // ── Toggle student status ─────────────────────────────────────
+  // Toggle status remains the same
   function confirmToggleStatus(student) {
     const next = student.status === 'active' ? 'inactive' : 'active';
     setConfirm({
-      message: `Are you sure you want to ${next === 'inactive' ? 'deactivate' : 'activate'} ${student.full_name}?`,
+      message: `Are you sure you want to ${next === 'inactive' ? 'deactivate' : 'activate'} ${student.first_name} ${student.last_name}?`,
       detail: next === 'inactive'
         ? 'They will no longer be able to sign in.'
         : 'They will be able to sign in again.',
@@ -100,21 +117,20 @@ export default function AdminStudents() {
     const { error } = await supabase.from('students').update({ status: next }).eq('student_id', student.student_id);
     if (error) { Alert.alert('Error', error.message); return; }
     
-    // Log audit trail
     await logStudentChange(
       AuditActions.STUDENT_STATUS_CHANGED,
       student.student_id,
-      { status: student.status, full_name: student.full_name },
-      { status: next, full_name: student.full_name }
+      { status: student.status, full_name: `${student.first_name} ${student.last_name}` },
+      { status: next, full_name: `${student.first_name} ${student.last_name}` }
     );
     
     fetchStudents();
   }
 
-  // ── CSV Import ────────────────────────────────────────────────
+  // UPDATED: CSV Import with new schema
   function downloadTemplate() {
-    const header = 'student_id,full_name,email,program,year_level,section';
-    const example = '21-12345,Juan Dela Cruz,juan@example.com,BSIT,1st Year,A';
+    const header = 'student_id,first_name,last_name,middle_name,email,program,year_level,section,phone_number';
+    const example = '21-12345,Juan,Dela Cruz,Cruz,juan@example.com,BSIT,1st Year,A,09123456789';
     const csv = `${header}\n${example}\n`;
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -130,7 +146,7 @@ export default function AdminStudents() {
     if (lines.length < 2) { setCsvErrors(['CSV must have a header row and at least one data row.']); return; }
 
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
-    const required = ['student_id', 'full_name', 'program', 'year_level'];
+    const required = ['student_id', 'first_name', 'last_name', 'program', 'year_level'];
     const missing = required.filter(r => !headers.includes(r));
     if (missing.length) {
       setCsvErrors([`Missing required columns: ${missing.join(', ')}`]);
@@ -146,17 +162,21 @@ export default function AdminStudents() {
       headers.forEach((h, idx) => { row[h] = vals[idx] || ''; });
 
       if (!row.student_id) { errors.push(`Row ${i}: missing student_id`); continue; }
-      if (!row.full_name)  { errors.push(`Row ${i}: missing full_name`); continue; }
+      if (!row.first_name)  { errors.push(`Row ${i}: missing first_name`); continue; }
+      if (!row.last_name)  { errors.push(`Row ${i}: missing last_name`); continue; }
       if (!row.program)    { errors.push(`Row ${i}: missing program`); continue; }
       if (!row.year_level) { errors.push(`Row ${i}: missing year_level`); continue; }
 
       rows.push({
         student_id: row.student_id,
-        full_name: row.full_name,
+        first_name: row.first_name,
+        last_name: row.last_name,
+        middle_name: row.middle_name || null,
         email: row.email || null,
         program: row.program,
         year_level: row.year_level,
         section: row.section || null,
+        phone_number: row.phone_number || null,
         status: 'active',
       });
     }
@@ -171,7 +191,6 @@ export default function AdminStudents() {
       const { data, error } = await supabase.from('students').upsert(csvPreview, { onConflict: 'student_id' }).select();
       if (error) throw error;
       
-      // Log bulk import audit trail
       await logStudentChange(
         AuditActions.STUDENT_IMPORTED,
         null,
@@ -194,7 +213,6 @@ export default function AdminStudents() {
 
   return (
     <View style={styles.container}>
-      {/* ── PAGE HEADER ── */}
       <View style={styles.pageHeader}>
         <View>
           <Text style={styles.pageTitle}>Students</Text>
@@ -212,7 +230,7 @@ export default function AdminStudents() {
         </View>
       </View>
 
-      {/* ── FILTERS ── */}
+      {/* FILTERS */}
       <View style={styles.filters}>
         <View style={styles.searchWrap}>
           <Ionicons name="search-outline" size={15} color="#8A8070" />
@@ -240,7 +258,7 @@ export default function AdminStudents() {
         </View>
       </View>
 
-      {/* ── TABLE ── */}
+      {/* TABLE */}
       <ScrollView style={styles.tableWrap} showsVerticalScrollIndicator={false}>
         <View style={styles.table}>
           <View style={[styles.tableRow, styles.tableHead]}>
@@ -250,7 +268,7 @@ export default function AdminStudents() {
             <Text style={[styles.cell, styles.headCell]}>Year</Text>
             <Text style={[styles.cell, styles.headCell]}>Section</Text>
             <Text style={[styles.cell, styles.headCell, { flex: 1.5 }]}>Email</Text>
-            <Text style={[styles.cell, styles.headCell]}>Joined</Text>
+            <Text style={[styles.cell, styles.headCell]}>Phone</Text>
             <Text style={[styles.cell, styles.headCell]}>Status</Text>
             <Text style={[styles.cell, styles.headCell]}></Text>
           </View>
@@ -261,17 +279,17 @@ export default function AdminStudents() {
           ) : filtered.map((s) => (
             <View key={s.student_id} style={styles.tableRow}>
               <Text style={[styles.cell, styles.idCell]}>{s.student_id}</Text>
-              <Text style={[styles.cell, styles.nameCell]} numberOfLines={1}>{s.full_name}</Text>
+              <Text style={[styles.cell, styles.nameCell]} numberOfLines={1}>
+                {s.first_name} {s.last_name}
+                {s.middle_name ? ` ${s.middle_name}` : ''}
+              </Text>
               <Text style={[styles.cell, styles.subCell]}>{s.program || '—'}</Text>
               <Text style={[styles.cell, styles.subCell]}>{s.year_level || '—'}</Text>
               <Text style={[styles.cell, styles.subCell]}>{s.section || '—'}</Text>
               <Text style={[styles.cell, styles.emailCell]} numberOfLines={1}>
                 {s.email || '—'}
-                {s.auth_user_id && <Text style={styles.registeredBadge}> ✓</Text>}
               </Text>
-              <Text style={[styles.cell, styles.subCell, { fontSize: 11 }]}>
-                {new Date(s.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
-              </Text>
+              <Text style={[styles.cell, styles.subCell]}>{s.phone_number || '—'}</Text>
               <View style={styles.cell}>
                 <View style={[styles.statusBadge, s.status === 'active' ? styles.badgeActive : styles.badgeInactive]}>
                   <Text style={[styles.badgeText, s.status === 'active' ? styles.badgeTextActive : styles.badgeTextInactive]}>
@@ -289,7 +307,7 @@ export default function AdminStudents() {
         </View>
       </ScrollView>
 
-      {/* ── ADD STUDENT MODAL ── */}
+      {/* ADD STUDENT MODAL - UPDATED */}
       <Modal visible={showAddModal} transparent animationType="fade" onRequestClose={() => setShowAddModal(false)}>
         <View style={styles.overlay}>
           <View style={styles.modal}>
@@ -302,9 +320,12 @@ export default function AdminStudents() {
             <ScrollView contentContainerStyle={styles.modalBody}>
               {[
                 { key: 'student_id', label: 'Student ID *', placeholder: '21-12345' },
-                { key: 'full_name',  label: 'Full Name *',  placeholder: 'Juan Dela Cruz' },
-                { key: 'email',      label: 'Email',        placeholder: 'optional' },
-                { key: 'section',    label: 'Section',      placeholder: 'e.g. 3A' },
+                { key: 'first_name', label: 'First Name *', placeholder: 'Juan' },
+                { key: 'last_name',  label: 'Last Name *',  placeholder: 'Dela Cruz' },
+                { key: 'middle_name',label: 'Middle Name', placeholder: 'Optional' },
+                { key: 'email',      label: 'Email *',     placeholder: 'juan@ctu.edu.ph' },
+                { key: 'section',    label: 'Section',     placeholder: 'e.g., A' },
+                { key: 'phone_number', label: 'Phone Number', placeholder: 'Optional' },
               ].map((f) => (
                 <View key={f.key} style={styles.formGroup}>
                   <Text style={styles.formLabel}>{f.label}</Text>
@@ -360,7 +381,7 @@ export default function AdminStudents() {
         </View>
       </Modal>
 
-      {/* ── CONFIRM MODAL ── */}
+      {/* CONFIRM MODAL - Same */}
       <Modal visible={!!confirm} transparent animationType="fade" onRequestClose={() => setConfirm(null)}>
         <View style={styles.overlay}>
           <View style={[styles.modal, { maxWidth: 360 }]}>
@@ -386,7 +407,7 @@ export default function AdminStudents() {
         </View>
       </Modal>
 
-      {/* ── CSV IMPORT MODAL ── */}
+      {/* CSV IMPORT MODAL - Updated */}
       <Modal visible={showImportModal} transparent animationType="fade" onRequestClose={() => setShowImportModal(false)}>
         <View style={styles.overlay}>
           <View style={[styles.modal, { maxWidth: 600 }]}>
@@ -400,8 +421,8 @@ export default function AdminStudents() {
               <View style={styles.csvInfo}>
                 <Ionicons name="information-circle-outline" size={16} color="#5B8CFF" />
                 <Text style={styles.csvInfoText}>
-                  Required columns: <Text style={{ fontWeight: '700' }}>student_id, full_name, program, year_level</Text>{'\n'}
-                  Optional: email, section{'\n'}
+                  Required columns: <Text style={{ fontWeight: '700' }}>student_id, first_name, last_name, program, year_level</Text>{'\n'}
+                  Optional: middle_name, email, section, phone_number{'\n'}
                   First row must be the header. Existing student IDs will be updated.
                 </Text>
               </View>
@@ -415,7 +436,7 @@ export default function AdminStudents() {
                 <Text style={styles.formLabel}>Paste CSV content</Text>
                 <TextInput
                   style={[styles.formInput, styles.csvTextArea]}
-                  placeholder={'student_id,full_name,program,year_level,section\n21-12345,Juan Dela Cruz,BSIT,1st Year,A'}
+                  placeholder={'student_id,first_name,last_name,middle_name,email,program,year_level,section,phone_number\n21-12345,Juan,Dela Cruz,Cruz,juan@example.com,BSIT,1st Year,A,09123456789'}
                   placeholderTextColor="#B8AFA4"
                   value={csvText}
                   onChangeText={(v) => { setCsvText(v); setCsvPreview([]); setCsvErrors([]); }}
@@ -440,7 +461,7 @@ export default function AdminStudents() {
                   <Text style={styles.previewTitle}>{csvPreview.length} rows ready to import</Text>
                   {csvPreview.slice(0, 5).map((r, i) => (
                     <Text key={i} style={styles.previewRow}>
-                      {r.student_id} — {r.full_name} ({r.program}, {r.year_level})
+                      {r.student_id} — {r.first_name} {r.last_name} ({r.program}, {r.year_level})
                     </Text>
                   ))}
                   {csvPreview.length > 5 && (

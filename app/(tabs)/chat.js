@@ -41,20 +41,54 @@ export default function ChatInbox() {
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUserId(user.id);
 
-      const { data, error } = await supabase
+      // Try with foreign key first
+      let { data, error } = await supabase
         .from('chat_threads')
         .select(`
           *,
-          registered_item:items!chat_threads_registered_item_id_fkey(
+          item:items!chat_threads_item_id_fkey(
             id, name, category, photo_urls
-          ),
-          match:ai_matches!chat_threads_match_id_fkey(
-            id, match_score, status
           )
         `)
         .or(`owner_id.eq.${user.id},finder_id.eq.${user.id}`)
-        .order('last_message_at', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false });
+        .order('updated_at', { ascending: false });
+
+      // Fallback if foreign key doesn't work
+      if (error && error.message.includes('relationship')) {
+        console.warn('Foreign key not found, using fallback query');
+        
+        const { data: basicThreads, error: fallbackError } = await supabase
+          .from('chat_threads')
+          .select('*')
+          .or(`owner_id.eq.${user.id},finder_id.eq.${user.id}`)
+          .order('updated_at', { ascending: false });
+
+        if (fallbackError) throw fallbackError;
+
+        // Manually fetch item details
+        if (basicThreads && basicThreads.length > 0) {
+          const itemIds = [...new Set(basicThreads.map(t => t.item_id))];
+          
+          const { data: items } = await supabase
+            .from('items')
+            .select('id, name, category, photo_urls')
+            .in('id', itemIds);
+
+          const itemsMap = {};
+          (items || []).forEach(item => {
+            itemsMap[item.id] = item;
+          });
+
+          data = basicThreads.map(thread => ({
+            ...thread,
+            item: itemsMap[thread.item_id] || null,
+          }));
+        } else {
+          data = basicThreads;
+        }
+      } else if (error) {
+        throw error;
+      }
 
       if (error) throw error;
       setThreads(data || []);
@@ -129,9 +163,9 @@ export default function ChatInbox() {
 
   function renderThread({ item: thread }) {
     const isOwner = thread.owner_id === currentUserId;
-    const unreadCount = isOwner ? thread.unread_count_owner : thread.unread_count_finder;
-    const { icon, color } = getCategoryIcon(thread.registered_item?.category);
-    const isClosed = thread.status === 'closed';
+    const unreadCount = 0; // TODO: Implement unread count
+    const { icon, color } = getCategoryIcon(thread.item?.category);
+    const isClosed = thread.status === 'resolved' || thread.status === 'archived';
     const hasUnread = unreadCount > 0;
 
     return (
@@ -149,9 +183,9 @@ export default function ChatInbox() {
 
         {/* Item Photo/Icon */}
         <View style={[styles.threadPhoto, { backgroundColor: `${color}18` }]}>
-          {thread.registered_item?.photo_urls?.[0] ? (
+          {thread.item?.photo_urls?.[0] ? (
             <Image
-              source={{ uri: thread.registered_item.photo_urls[0] }}
+              source={{ uri: thread.item.photo_urls[0] }}
               style={styles.threadPhotoImage}
             />
           ) : (
@@ -173,10 +207,10 @@ export default function ChatInbox() {
               ]}
               numberOfLines={1}
             >
-              {thread.registered_item?.name || 'Unknown Item'}
+              {thread.item?.name || 'Unknown Item'}
             </Text>
             <Text style={styles.threadTime}>
-              {formatTime(thread.last_message_at || thread.created_at)}
+              {formatTime(thread.updated_at || thread.created_at)}
             </Text>
           </View>
 
@@ -185,26 +219,11 @@ export default function ChatInbox() {
             {isOwner ? '👤 Chat with Finder' : '🔍 Chat with Owner'}
             {'  ·  '}
             <Text style={[styles.threadCategoryTag, { color }]}>
-              {thread.registered_item?.category}
+              {thread.item?.category}
             </Text>
           </Text>
 
-          {/* Row 3: last message */}
-          {thread.last_message ? (
-            <Text
-              style={[
-                styles.threadMessage,
-                hasUnread && styles.threadMessageUnread,
-              ]}
-              numberOfLines={1}
-            >
-              {thread.last_message}
-            </Text>
-          ) : (
-            <Text style={styles.threadMessageEmpty}>No messages yet</Text>
-          )}
-
-          {/* Row 4: status + match badges */}
+          {/* Row 3: status */}
           <View style={styles.threadFooter}>
             {isClosed ? (
               <View style={[styles.statusBadge, styles.statusBadgeClosed]}>
@@ -215,15 +234,6 @@ export default function ChatInbox() {
               <View style={[styles.statusBadge, styles.statusBadgeOpen]}>
                 <View style={styles.statusPulse} />
                 <Text style={[styles.statusBadgeText, { color: '#8a6a10' }]}>Active</Text>
-              </View>
-            )}
-
-            {thread.match?.match_score && (
-              <View style={styles.matchBadge}>
-                <Ionicons name="sparkles" size={10} color={colors.gold} />
-                <Text style={styles.matchBadgeText}>
-                  {Math.round(thread.match.match_score)}% match
-                </Text>
               </View>
             )}
           </View>
@@ -256,8 +266,8 @@ export default function ChatInbox() {
     );
   }
 
-  const openThreads = threads.filter(t => t.status !== 'closed');
-  const closedThreads = threads.filter(t => t.status === 'closed');
+  const openThreads = threads.filter(t => t.status === 'active');
+  const closedThreads = threads.filter(t => t.status === 'resolved' || t.status === 'archived');
 
   return (
     <View style={styles.container}>
@@ -286,13 +296,10 @@ export default function ChatInbox() {
               </Text>
             </View>
 
-            {threads.some(t => {
-              const isOwner = t.owner_id === currentUserId;
-              return (isOwner ? t.unread_count_owner : t.unread_count_finder) > 0;
-            }) && (
+            {openThreads.length > 0 && (
               <View style={styles.headerUnreadPill}>
                 <Ionicons name="chatbubble" size={13} color={colors.grape} />
-                <Text style={styles.headerUnreadText}>New</Text>
+                <Text style={styles.headerUnreadText}>{openThreads.length}</Text>
               </View>
             )}
           </View>
