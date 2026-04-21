@@ -43,6 +43,7 @@ export default function ChatThread() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
   const flatListRef = useRef(null);
+  const currentUserIdRef = useRef(null);
   const router = useRouter();
   const r = useResponsive();
 
@@ -50,6 +51,11 @@ export default function ChatThread() {
     fetchThreadInfo();
     fetchMessages();
     markMessagesAsRead();
+
+    // Poll every 3 seconds as reliable fallback for real-time
+    const pollInterval = setInterval(() => {
+      fetchMessages();
+    }, 3000);
 
     const channel = supabase
       .channel(`thread_${thread_id}`)
@@ -62,25 +68,23 @@ export default function ChatThread() {
           filter: `thread_id=eq.${thread_id}`,
         },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new]);
-          scrollToBottom();
-          markMessagesAsRead();
+          const incoming = payload.new;
+          if (incoming.sender_id !== currentUserIdRef.current) {
+            setMessages((prev) => {
+              if (prev.some(m => m.id === incoming.id)) return prev;
+              return [...prev, incoming];
+            });
+            scrollToBottom();
+            markMessagesAsRead();
+          }
         }
       )
       .subscribe((status) => {
-        if (status === 'SUBSCRIPTION_ERROR') {
-          console.error('Chat subscription error - attempting to reconnect...');
-          Alert.alert(
-            'Connection Issue',
-            'Real-time updates temporarily unavailable. Messages will still be delivered.',
-            [{ text: 'OK' }]
-          );
-        } else if (status === 'SUBSCRIBED') {
-          console.log('Chat subscription active');
-        }
+        console.log('Chat subscription status:', status);
       });
 
     return () => {
+      clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
   }, [thread_id]);
@@ -89,17 +93,13 @@ export default function ChatThread() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUserId(user.id);
+      currentUserIdRef.current = user.id;
 
       const { data, error } = await supabase
         .from('chat_threads')
         .select(`
           *,
-          registered_item:items!chat_threads_registered_item_id_fkey(
-            id, name, category, photo_urls
-          ),
-          match:ai_matches!chat_threads_match_id_fkey(
-            id, match_score, status
-          )
+          item:items(id, name, category, photo_urls)
         `)
         .eq('id', thread_id)
         .single();
@@ -122,7 +122,23 @@ export default function ChatThread() {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+      
+      // Merge: keep optimistic temp messages, add real ones without duplicates
+      setMessages((prev) => {
+        const tempMessages = prev.filter(m => m.id?.startsWith('temp-'));
+        const realMessages = data || [];
+        // Remove temps that now have a real counterpart (same message text + sender within 10s)
+        const filteredTemps = tempMessages.filter(temp =>
+          !realMessages.some(real =>
+            real.sender_id === temp.sender_id &&
+            real.message === temp.message &&
+            Math.abs(new Date(real.created_at) - new Date(temp.created_at)) < 10000
+          )
+        );
+        return [...realMessages, ...filteredTemps].sort(
+          (a, b) => new Date(a.created_at) - new Date(b.created_at)
+        );
+      });
     } catch (err) {
       console.error('Error fetching messages:', err);
     } finally {
@@ -133,35 +149,56 @@ export default function ChatThread() {
   async function markMessagesAsRead() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      await supabase.rpc('mark_messages_read', {
-        p_thread_id: thread_id,
-        p_user_id: user.id,
-      });
+      await supabase
+        .from('chat_messages')
+        .update({ is_read: true })
+        .eq('thread_id', thread_id)
+        .neq('sender_id', user.id)
+        .eq('is_read', false);
     } catch (err) {
-      console.error('Error marking messages as read:', err);
+      // Non-critical, ignore
     }
   }
 
   async function sendMessage() {
     if (!newMessage.trim() || threadInfo?.status === 'closed') return;
 
+    const messageText = newMessage.trim();
+    setNewMessage('');
+
+    // Optimistically add message to UI immediately
+    const tempMessage = {
+      id: `temp-${Date.now()}`,
+      thread_id,
+      sender_id: currentUserId,
+      message: messageText,
+      created_at: new Date().toISOString(),
+      is_read: false,
+    };
+    setMessages((prev) => [...prev, tempMessage]);
+    scrollToBottom();
+
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('chat_messages')
         .insert({
           thread_id,
           sender_id: currentUserId,
-          sender_role: isOwner ? 'owner' : 'finder',
-          message: newMessage.trim(),
-        });
+          message: messageText,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      setNewMessage('');
-      scrollToBottom();
+      // Replace temp message with real one
+      setMessages((prev) => prev.map(m => m.id === tempMessage.id ? data : m));
     } catch (err) {
       console.error('Error sending message:', err);
-      Alert.alert('Error', 'Failed to send message');
+      // Remove temp message on failure
+      setMessages((prev) => prev.filter(m => m.id !== tempMessage.id));
+      setNewMessage(messageText);
+      Alert.alert('Error', 'Failed to send message. Please try again.');
     }
   }
 
@@ -336,7 +373,7 @@ export default function ChatThread() {
               {isOwner ? 'Chat with Finder' : 'Chat with Owner'}
             </Text>
             <Text style={[styles.headerSub, { fontSize: r.isTablet ? 11 : 10 }]} numberOfLines={1}>
-              Re: {threadInfo?.registered_item?.name}
+              Re: {threadInfo?.item?.name}
             </Text>
           </View>
 
@@ -347,11 +384,11 @@ export default function ChatThread() {
             </View>
           )}
 
-          {!isClosed && threadInfo?.match?.match_score && (
+          {!isClosed && threadInfo?.match_score && (
             <View style={styles.scoreBadge}>
               <Ionicons name="sparkles" size={11} color={colors.gold} />
               <Text style={styles.scoreBadgeText}>
-                {Math.round(threadInfo.match.match_score)}%
+                {Math.round(threadInfo.match_score * 100)}%
               </Text>
             </View>
           )}
@@ -361,15 +398,15 @@ export default function ChatThread() {
       </View>
 
       {/* ── ITEM SUMMARY CARD ──────────────────────────────── */}
-      {threadInfo?.registered_item && (
+      {threadInfo?.item && (
         <View style={[
           styles.summaryCard,
           { marginHorizontal: r.hPad },
           r.maxContentWidth && { maxWidth: r.maxContentWidth, alignSelf: 'center', width: '100%', marginHorizontal: 0 },
         ]}>
-          {threadInfo.registered_item.photo_urls?.[0] ? (
+          {threadInfo.item.photo_urls?.[0] ? (
             <Image
-              source={{ uri: threadInfo.registered_item.photo_urls[0] }}
+              source={{ uri: threadInfo.item.photo_urls[0] }}
               style={styles.summaryPhoto}
             />
           ) : (
@@ -379,19 +416,11 @@ export default function ChatThread() {
           )}
           <View style={styles.summaryBody}>
             <Text style={[styles.summaryTitle, { fontSize: r.isTablet ? 14 : 13 }]}>
-              {threadInfo.registered_item.name}
+              {threadInfo.item.name}
             </Text>
             <Text style={[styles.summaryCat, { fontSize: r.isTablet ? 12 : 11 }]}>
-              {threadInfo.registered_item.category}
+              {threadInfo.item.category}
             </Text>
-            {threadInfo.match?.match_score && (
-              <View style={styles.summaryBadge}>
-                <Ionicons name="sparkles" size={10} color={colors.gold} />
-                <Text style={styles.summaryBadgeText}>
-                  {Math.round(threadInfo.match.match_score)}% match
-                </Text>
-              </View>
-            )}
           </View>
           {isClosed && (
             <View style={styles.summaryRecoveredTag}>
@@ -485,6 +514,9 @@ export default function ChatThread() {
                 placeholderTextColor="#B8AFA4"
                 value={newMessage}
                 onChangeText={setNewMessage}
+                onSubmitEditing={sendMessage}
+                blurOnSubmit={false}
+                returnKeyType="send"
                 multiline
                 maxLength={500}
               />

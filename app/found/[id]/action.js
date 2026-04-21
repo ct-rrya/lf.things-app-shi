@@ -153,6 +153,7 @@ export default function FinderActionPage() {
           item_id: id,
           finder_name: finderName.trim() || null,
           action: selectedAction,
+          scanner_type: 'web', // This is a web-based scan
           location_note: locationNote.trim() || null,
         }])
         .select()
@@ -179,11 +180,29 @@ export default function FinderActionPage() {
         throw new Error(`Failed to update item status: ${updateError.message}`);
       }
 
-      // 3. TODO: Trigger notifications via Edge Function
-      // This would call a Supabase Edge Function that sends:
-      // - Push notification via Expo
-      // - SMS via Semaphore/Twilio
-      // For now, we'll just show success
+      // 3. Create notification for the owner
+      const { error: notifError } = await supabase.from('notifications').insert({
+        user_id: item.user_id,
+        type: selectedOption === 'turned_in_admin' ? 'item_returned' : 'item_found',
+        title: selectedOption === 'turned_in_admin' ? 'Item at SSG Office' : 'Item Found',
+        body: selectedOption === 'turned_in_admin'
+          ? `Your ${item.name} has been turned in to the SSG Office. Please claim it during office hours.`
+          : selectedOption === 'left_it'
+          ? `Your ${item.name} was found at: ${locationNote.trim()}`
+          : `Someone found your ${item.name} and wants to return it to you.`,
+        data: { 
+          item_id: id,
+          item_name: item.name,
+          action: selectedOption,
+          location: locationNote.trim() || null,
+          finder_name: finderName.trim() || 'Anonymous'
+        },
+      });
+
+      if (notifError) {
+        console.error('Failed to create notification:', notifError);
+        // Don't throw - scan event is already recorded
+      }
 
       const successMessage = selectedAction === 'turned_in_admin'
         ? 'The owner has been notified. Please bring the item to the CTU Daanbantayan Student Affairs Office during office hours (Monday-Friday, 8:00 AM - 5:00 PM).'

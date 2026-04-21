@@ -150,6 +150,7 @@ export default function ScanPage() {
         .insert({
           item_id: item.id,
           action: selectedOption,
+          scanner_type: 'web', // This is a web-based scan
           finder_name: finderName.trim() || 'Anonymous Finder',
           finder_phone: phone.trim() || null,
           finder_contact: facebook.trim() || instagram.trim() || null,
@@ -168,46 +169,28 @@ export default function ScanPage() {
         throw new Error('Scan event was not created properly');
       }
 
-      // Update item status
+      // Update item status to trigger custody log
       const newStatus = selectedOption === 'turn_in' ? 'at_admin' : 'found';
-      const { error: statusError } = await supabase
+      console.log('Updating item status to:', newStatus);
+      
+      const { data: updateData, error: statusError } = await supabase
         .from('items')
         .update({ status: newStatus })
-        .eq('id', item.id);
-
-      if (statusError) {
-        console.error('Failed to update item status:', statusError);
-        // Don't throw - scan event is already recorded
-      }
-
-      if (scanError) {
-        console.error('Scan event error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-        throw error;
-      }
-
-      console.log('Updating item status...');
-      // Update item status
-      const { data: updateData, error: updateError } = await supabase
-        .from('items')
-        .update({
-          status: selectedOption === 'turn_in' ? 'at_admin' : 'located'
-        })
         .eq('id', item.id)
         .select();
 
-      console.log('Item update result:', { data: updateData, error: updateError });
-      if (updateError) throw updateError;
+      console.log('Item update result:', { data: updateData, error: statusError });
+      
+      if (statusError) {
+        console.error('Failed to update item status:', statusError);
+        // Don't throw - scan event is already recorded, notification will still be sent
+      }
 
       console.log('Creating notification...');
       // Notify the owner via notifications table
       const { data: notifData, error: notifError } = await supabase.from('notifications').insert({
         user_id: item.user_id,
-        type: selectedOption === 'turn_in' ? 'item_turned_in' : 'item_located',
+        type: selectedOption === 'turn_in' ? 'item_returned' : 'item_found',
         title: selectedOption === 'turn_in' ? 'Item Turned In' : 'Item Located',
         body: selectedOption === 'turn_in'
           ? `Someone found your ${item.name} and turned it in to the SSG Office.`
@@ -219,7 +202,11 @@ export default function ScanPage() {
       }).select();
 
       console.log('Notification result:', { data: notifData, error: notifError });
-      // ignore error if notifications table doesn't exist yet
+      
+      if (notifError) {
+        console.error('Failed to create notification:', notifError);
+        // Don't throw - scan event is already recorded
+      }
 
       // If "have_it" option, create chat thread and navigate to it
       if (selectedOption === 'have_it') {

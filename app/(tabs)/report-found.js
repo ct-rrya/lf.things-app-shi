@@ -152,22 +152,56 @@ export default function ReportFound() {
             match_score: match.score, match_details: { reasoning: match.reasoning, breakdown: match.breakdown },
           })));
         }
-      } catch (aiError) { console.error('AI matching error:', aiError); }
-      setStep(1); setCategory(null); setSelectedCategory(null); setFormData({});
-      setDescription(''); setLocation(''); setCustomLocation(''); setPhoto(null);
-      Alert.alert(
-        '✅ Item Reported Successfully!',
-        matchCount > 0
-          ? `Your report has been submitted. AI found ${matchCount} potential match(es). The owner(s) will be notified.`
-          : "Your report has been submitted. We'll notify you if we find a match with any lost items.",
-        [{ text: 'View My Reports', onPress: () => router.push('/profile') }, { text: 'Done', style: 'cancel', onPress: () => router.push('/home') }]
-      );
+      } catch (aiError) { 
+        console.warn('AI matching error (non-critical):', aiError.message); 
+      }
+      
+      // Reset form
+      setStep(1); 
+      setCategory(null); 
+      setSelectedCategory(null); 
+      setFormData({});
+      setDescription(''); 
+      setLocation(''); 
+      setCustomLocation(''); 
+      setPhoto(null);
+      
+      // Show success message
+      console.log('Showing success alert with matchCount:', matchCount);
+      setTimeout(() => {
+        Alert.alert(
+          '✅ Item Reported Successfully!',
+          matchCount > 0
+            ? `Your report has been submitted and saved to the admin system.\n\nAI found ${matchCount} potential match(es). The owner(s) will be notified.`
+            : "Your report has been submitted and saved to the admin system.\n\nWe'll notify you if we find a match with any lost items.",
+          [
+            { text: 'Report Another', onPress: () => setStep(1) }, 
+            { text: 'Go Home', style: 'cancel', onPress: () => router.push('/(tabs)/home') }
+          ]
+        );
+      }, 100);
     } catch (error) {
-      let errorMessage = 'Failed to report item';
-      if (error.message.includes('Bucket not found')) errorMessage = 'Storage not configured.';
-      else if (error.message.includes('Policy')) errorMessage = 'Storage permission error.';
-      else if (error.message) errorMessage = error.message;
-      Alert.alert('Error', errorMessage);
+      console.error('Error submitting found item report:', error);
+      let errorMessage = 'Failed to report item. Please try again.';
+      let errorTitle = 'Error';
+      
+      if (error.message.includes('Bucket not found')) {
+        errorTitle = 'Storage Error';
+        errorMessage = 'Photo storage is not configured. Please contact support.';
+      } else if (error.message.includes('Policy') || error.message.includes('permission')) {
+        errorTitle = 'Permission Error';
+        errorMessage = 'You do not have permission to upload photos. Please contact support.';
+      } else if (error.message.includes('sign in') || error.message.includes('auth')) {
+        errorTitle = 'Authentication Error';
+        errorMessage = 'Please sign in to report found items.';
+      } else if (error.message.includes('Database error')) {
+        errorTitle = 'Database Error';
+        errorMessage = error.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert(errorTitle, errorMessage);
     } finally {
       setLoading(false);
     }

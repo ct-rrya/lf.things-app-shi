@@ -75,8 +75,7 @@ export default function Notifications() {
               .from('ai_matches')
               .select(`
                 *,
-                lost_item:items!ai_matches_lost_item_id_fkey(id, name, category, description),
-                found_item:found_items(id, category, brand, model, color, description, photo_url, found_location)
+                lost_item:items!ai_matches_lost_item_id_fkey(id, name, category, description)
               `)
               .in('lost_item_id', itemIds)
               .order('created_at', { ascending: false }),
@@ -86,9 +85,33 @@ export default function Notifications() {
       if (scanEventsRes.error) throw scanEventsRes.error;
       if (matchesRes.error) throw matchesRes.error;
 
+      // Fetch found_items separately to avoid FK relationship issues
+      const rawMatches = matchesRes.data || [];
+      const foundItemIds = [...new Set(rawMatches.map(m => m.found_item_id).filter(Boolean))];
+      let foundItemsMap = {};
+
+      if (foundItemIds.length > 0) {
+        const { data: foundItemsData } = await supabase
+          .from('found_items')
+          .select('id, category, brand, model, color, description, photo_url, found_location')
+          .in('id', foundItemIds);
+
+        if (foundItemsData) {
+          foundItemsMap = foundItemsData.reduce((acc, fi) => {
+            acc[fi.id] = fi;
+            return acc;
+          }, {});
+        }
+      }
+
+      const enrichedMatches = rawMatches.map(m => ({
+        ...m,
+        found_item: foundItemsMap[m.found_item_id] || null,
+      }));
+
       setScans(notifData || []);
       setScanEvents(scanEventsRes.data || []);
-      setMatches(matchesRes.data || []);
+      setMatches(enrichedMatches);
     } catch (error) {
       console.error('Fetch error:', error);
       Alert.alert(
@@ -200,7 +223,7 @@ export default function Notifications() {
   }
 
   function renderMatch({ item: match }) {
-    const matchScore = Math.round(match.match_score);
+    const matchScore = Math.round(match.match_score * 100);
     const scoreColor = matchScore >= 80 ? '#059669' : matchScore >= 60 ? '#d97706' : '#6b7280';
     const scoreBg = matchScore >= 80 ? 'rgba(5,150,105,0.1)' : matchScore >= 60 ? 'rgba(217,119,6,0.1)' : 'rgba(107,114,128,0.1)';
 

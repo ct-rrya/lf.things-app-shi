@@ -110,15 +110,26 @@ export default function MyItems() {
           borderColor: 'rgba(208,8,3,0.18)',
           dotColor: colors.ember,
         };
+      case 'at_admin':
+        return {
+          label: 'At SSG Office',
+          color: '#2563eb',
+          bgColor: 'rgba(37,99,235,0.08)',
+          borderColor: 'rgba(37,99,235,0.18)',
+          dotColor: '#3b82f6',
+        };
+      case 'found':
       case 'located':
         return {
-          label: 'Located',
+          label: 'Found',
           color: '#d97706',
           bgColor: 'rgba(245,158,11,0.08)',
           borderColor: 'rgba(245,158,11,0.2)',
           dotColor: '#f59e0b',
         };
       case 'recovered':
+      case 'returned':
+      case 'claimed':
         return {
           label: 'Recovered',
           color: '#059669',
@@ -140,8 +151,9 @@ export default function MyItems() {
   // Group items by status
   const groupedItems = {
     lost: items.filter(i => i.status === 'lost'),
-    located: items.filter(i => i.status === 'located'),
-    recovered: items.filter(i => i.status === 'recovered'),
+    at_admin: items.filter(i => i.status === 'at_admin'),
+    found: items.filter(i => i.status === 'found' || i.status === 'located'),
+    recovered: items.filter(i => i.status === 'recovered' || i.status === 'returned' || i.status === 'claimed'),
     safe: items.filter(i => !i.status || i.status === 'safe'),
   };
 
@@ -267,10 +279,16 @@ export default function MyItems() {
                     <Text style={styles.headerStatText}>{groupedItems.lost.length}</Text>
                   </View>
                 )}
-                {groupedItems.located.length > 0 && (
+                {groupedItems.at_admin.length > 0 && (
+                  <View style={styles.headerStatPill}>
+                    <View style={[styles.headerStatDot, { backgroundColor: '#3b82f6' }]} />
+                    <Text style={styles.headerStatText}>{groupedItems.at_admin.length}</Text>
+                  </View>
+                )}
+                {groupedItems.found.length > 0 && (
                   <View style={styles.headerStatPill}>
                     <View style={[styles.headerStatDot, { backgroundColor: '#f59e0b' }]} />
-                    <Text style={styles.headerStatText}>{groupedItems.located.length}</Text>
+                    <Text style={styles.headerStatText}>{groupedItems.found.length}</Text>
                   </View>
                 )}
                 {groupedItems.recovered.length > 0 && (
@@ -376,7 +394,8 @@ export default function MyItems() {
                 r.maxContentWidth && { maxWidth: r.maxContentWidth, alignSelf: 'center', width: '100%' },
               ]}>
                 {renderSection('Lost', groupedItems.lost, 'alert-circle', colors.ember)}
-                {renderSection('Located', groupedItems.located, 'location', '#f59e0b')}
+                {renderSection('At SSG Office', groupedItems.at_admin, 'business', '#3b82f6')}
+                {renderSection('Found', groupedItems.found, 'location', '#f59e0b')}
                 {renderSection('Recovered', groupedItems.recovered, 'checkmark-circle', '#10b981')}
                 {renderSection('Safe', groupedItems.safe, 'shield-checkmark', '#6b7280')}
               </View>

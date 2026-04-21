@@ -114,7 +114,7 @@ export default function FoundReportDetail() {
 
       const { error: itemError } = await supabase
         .from('items')
-        .update({ status: 'located' })
+        .update({ status: 'found' })
         .eq('id', matchInfo.lost_item.id);
       if (itemError) throw itemError;
 
@@ -127,8 +127,9 @@ export default function FoundReportDetail() {
       const { data: existingThread } = await supabase
         .from('chat_threads')
         .select('id')
-        .eq('match_id', matchInfo.id)
-        .single();
+        .eq('item_id', matchInfo.lost_item.id)
+        .eq('finder_id', foundItem.reporter_id)
+        .maybeSingle();
 
       let threadId;
       if (existingThread) {
@@ -137,8 +138,7 @@ export default function FoundReportDetail() {
         const { data: threadData, error: threadError } = await supabase
           .from('chat_threads')
           .insert({
-            match_id: matchInfo.id,
-            registered_item_id: matchInfo.lost_item.id,
+            item_id: matchInfo.lost_item.id,
             owner_id: user.id,
             finder_id: foundItem.reporter_id,
           })
@@ -216,7 +216,7 @@ export default function FoundReportDetail() {
   }
 
   const { icon: catIcon, color: catColor } = getCategoryIcon(foundItem.category);
-  const matchScore = matchInfo ? Math.round(matchInfo.match_score) : null;
+  const matchScore = matchInfo ? Math.round(matchInfo.match_score * 100) : null;
   const scoreColor = matchScore >= 80 ? '#10b981' : matchScore >= 60 ? '#f59e0b' : '#6b7280';
 
   return (
